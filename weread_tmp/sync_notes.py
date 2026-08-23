@@ -5,7 +5,7 @@ sync_notes.py — 把 dash_data.json 的实时进度/划线同步回写「我的
 - 更新内容：front matter status（读完/在读）；替换「## 📝 微信读书划线」区块（导出时间/进度/划线数/按章节分组划线）
 - 数据来源：prep_dash.py 输出的 books[].progress / marks / mark_items / chapters
 """
-import json, os, re, datetime
+import json, os, re, sys, datetime
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
@@ -14,6 +14,8 @@ import config
 TMP = _HERE
 SHELF = config.shelf_dir()
 SECTION = "## 📝 微信读书划线"
+# 区块结束标记：脚本只维护 SECTION 到该标记之间的内容，标记之后的用户自写内容（读书笔记/读后感）永不删除
+END_MARK = "<!-- weread_marks_end -->"
 
 with open(f"{TMP}/dash_data.json", encoding="utf-8") as f:
     D = json.load(f)
@@ -96,7 +98,7 @@ def build_mark_section(book, sync_date):
             for q in quotes:
                 lines.append(f"> {q}")
                 lines.append("")
-    return "\n".join(lines)
+    return "\n".join(lines) + "\n\n" + END_MARK
 
 
 def new_note_frontmatter(title, author, cover, status):
@@ -155,7 +157,14 @@ def main():
             content = f.read()
         if SECTION in content:
             idx = content.index(SECTION)
-            content = content[:idx].rstrip() + "\n\n" + sec + "\n"
+            # 找到区块结束标记：标记之后的内容视为用户自写内容，必须保留
+            mark_idx = content.find(END_MARK, idx)
+            if mark_idx != -1:
+                tail = content[mark_idx + len(END_MARK):]
+                content = content[:idx].rstrip() + "\n\n" + sec + "\n" + tail
+            else:
+                # 旧格式文件（无结束标记）：SECTION 之后全为脚本生成的旧区块，整体替换
+                content = content[:idx].rstrip() + "\n\n" + sec + "\n"
         else:
             content = content.rstrip() + "\n\n" + sec + "\n"
         content = set_status(content, status)
