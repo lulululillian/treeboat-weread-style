@@ -488,7 +488,7 @@ month_view = f'''
 {hm}
 <div style="font-size:11px;color:#7E748C;margin-top:8px">格内数字为日期，颜色越深＝当天读得越久。</div></div>
 <div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px 20px;flex:1;min-width:280px;display:flex;flex-direction:column">
-<div style="font-size:14px;font-weight:500;margin-bottom:12px">本月读得最多的书</div>
+<div style="font-size:14px;font-weight:500;margin-bottom:12px">本月阅读时长排行</div>
 <div style="flex:1">{top5_html()}</div></div>
 </div>
 <div style="margin-bottom:14px">

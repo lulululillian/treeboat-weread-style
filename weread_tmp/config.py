@@ -24,6 +24,7 @@ def load():
         "stats_rel_dir": "微信读书/阅读统计",
         "shelf_rel_dir": "书影音/我的书架",
         "scripts_dir": "weread_tmp",
+        "output_mode": "md",
     }
     cfg = dict(defaults)
     cfg_path = os.path.join(_here(), "config.json")
@@ -73,3 +74,12 @@ def shelf_dir():
 def vault_name():
     """从 vault_root 推导 Obsidian 库名（用于 obsidian:// URI）"""
     return os.path.basename(vault_root().rstrip("/"))
+
+
+def output_mode():
+    """输出模式：md（默认，Obsidian DataviewJS）/ html（纯网页，无需 Obsidian）/ both（两者都生成）"""
+    mode = str(load().get("output_mode", "md") or "md").strip().lower()
+    if mode not in ("md", "html", "both"):
+        print(f"[config] output_mode 取值 {mode!r} 不合法，回退为 md")
+        return "md"
+    return mode

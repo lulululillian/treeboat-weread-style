@@ -90,6 +90,51 @@ def save_week_snapshot(here):
         print("周快照归档失败(不影响主流程):", e)
 
 
+# AIGC 标记特征（外部同步服务 fast-note-sync 注入的溯源 frontmatter）
+_AIGC_KEYS = ("AIGC", "ContentProducer", "ProduceID", "ReservedCode")
+
+
+def strip_aigc_frontmatter(path):
+    """删除 md 头部由外部同步服务注入的 AIGC frontmatter 块，返回是否清理过。"""
+    try:
+        with open(path, encoding="utf-8") as f:
+            txt = f.read()
+    except OSError:
+        return False
+    m = re.match(r"^---\r?\n(.*?)\r?\n---\r?\n?", txt, re.S)
+    if not m:
+        return False
+    block = m.group(1)
+    if not any(k.lower() in block.lower() for k in _AIGC_KEYS):
+        return False
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(txt[m.end():])
+    except OSError:
+        return False
+    return True
+
+
+def clean_aigc_in_stats():
+    """扫描 stats 目录下所有 .md（当前月 + 历史月快照），清除 AIGC frontmatter。
+
+    这是「生成之后检查，有就删除」的兜底：即使外部同步服务在生成后
+    重新注入了 AIGC 标记，下次刷新也会被自动清掉。
+    """
+    stats = config.stats_dir()
+    if not os.path.isdir(stats):
+        return 0
+    n = 0
+    for name in sorted(os.listdir(stats)):
+        if not name.endswith(".md"):
+            continue
+        p = os.path.join(stats, name)
+        if strip_aigc_frontmatter(p):
+            print("aigc cleaned:", p)
+            n += 1
+    return n
+
+
 def main():
     here = os.path.dirname(os.path.abspath(__file__))
     root = os.path.dirname(here)
@@ -129,8 +174,15 @@ def main():
             print("归档失败(不影响主流程):", e)
         save_week_snapshot(here)
         subprocess.run([sys.executable, os.path.join(here, "sync_notes.py")], cwd=root, check=True)
-        subprocess.run([sys.executable, os.path.join(here, "gen_dv.py")], cwd=root, check=True)
-        print("阅读统计.md 已刷新，书架笔记已同步")
+        mode = config.output_mode()
+        if mode in ("md", "both"):
+            subprocess.run([sys.executable, os.path.join(here, "gen_dv.py")], cwd=root, check=True)
+        if mode in ("html", "both"):
+            subprocess.run([sys.executable, os.path.join(here, "gen_html.py")], cwd=root, check=True)
+        # 生成后兜底：清除外部同步服务注入的 AIGC frontmatter（当前月 + 历史月）
+        n_cleaned = clean_aigc_in_stats()
+        print("阅读统计已刷新，书架笔记已同步"
+              + (f"，已清理 {n_cleaned} 个 AIGC 标记" if n_cleaned else ""))
     except BaseException as e:
         # 任一步失败：回滚旧数据，保留看板
         for name, bak in backup.items():

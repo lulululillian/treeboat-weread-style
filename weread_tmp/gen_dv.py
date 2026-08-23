@@ -3,7 +3,7 @@
 - 当前月：阅读统计.md，头部含历史月份入口按钮
 - 历史月：扫描 data\*.json，逐个生成 阅读统计-YYYY-MM.md（月视图快照）
 """
-import runpy, os, datetime, urllib.parse, re, glob, json
+import runpy, os, sys, datetime, urllib.parse, re, glob, json, subprocess
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
@@ -21,6 +21,36 @@ def vault_uri(note_abs):
     if p.startswith(root):
         p = p[len(root):]
     return "obsidian://open/?vault=" + urllib.parse.quote(VAULT) + "&file=" + urllib.parse.quote(p, safe="/")
+
+
+# AIGC 标记特征（外部同步服务 fast-note-sync 注入的溯源 frontmatter）
+_AIGC_KEYS = ("AIGC", "ContentProducer", "ProduceID", "ReservedCode")
+
+
+def strip_aigc_frontmatter(path):
+    """删除 md 头部由外部同步服务注入的 AIGC frontmatter 块。
+
+    仅当文件开头是 ``--- ... ---`` frontmatter 且块内包含 AIGC 溯源标记时才删除，
+    不触碰正常笔记（如书架笔记的 YAML）。返回是否清理过。
+    """
+    try:
+        with open(path, encoding="utf-8") as f:
+            txt = f.read()
+    except OSError:
+        return False
+    m = re.match(r"^---\r?\n(.*?)\r?\n---\r?\n?", txt, re.S)
+    if not m:
+        return False
+    block = m.group(1)
+    if not any(k.lower() in block.lower() for k in _AIGC_KEYS):
+        return False
+    rest = txt[m.end():]
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(rest)
+    except OSError:
+        return False
+    return True
 
 # ---- 复用 gen_html.py 渲染组件（当前月） ----
 ns = runpy.run_path(os.path.join(_HERE, "gen_html.py"))
@@ -209,12 +239,21 @@ md = "```dataviewjs\n" + js + "\n```\n"
 
 OUT_MD = os.path.join(OUT_DIR, "阅读统计.md")
 OUT_HTML = os.path.join(OUT_DIR, "阅读统计.html")
+MODE = config.output_mode()
 
 with open(OUT_MD, "w", encoding="utf-8") as f:
     f.write(md)
 
-# 外部 HTML 版不再生成（用户明确不要），若残留则删除
-if os.path.exists(OUT_HTML):
+# 生成后兜底检查：若外部同步服务在写入瞬间注入了 AIGC frontmatter，立即清除
+if strip_aigc_frontmatter(OUT_MD):
+    print("aigc cleaned:", OUT_MD)
+
+# 网页模式（无需 Obsidian）：生成独立 HTML；仅 md 模式时删除残留
+if MODE in ("html", "both"):
+    os.environ.pop("WEREAD_DASH_DATA", None)  # 清除历史月循环残留，确保生成当前月
+    subprocess.run([sys.executable, os.path.join(_HERE, "gen_html.py")],
+                   cwd=os.path.dirname(_HERE), check=True)
+elif os.path.exists(OUT_HTML):
     try:
         os.remove(OUT_HTML)
     except OSError:
@@ -265,6 +304,8 @@ if os.path.isdir(DATA_DIR):
         hout = os.path.join(OUT_DIR, f"阅读统计-{y:04d}-{mo:02d}.md")
         with open(hout, "w", encoding="utf-8") as f:
             f.write(hmd)
+        if strip_aigc_frontmatter(hout):
+            print("aigc cleaned:", hout)
         print("hist:", hout, f"({len(hmd)} chars)")
 else:
     print("hist: data dir not found:", DATA_DIR)

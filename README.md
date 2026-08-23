@@ -9,18 +9,30 @@
 
 ## 使用方式（拿到压缩包后）
 
+**先选查看方式**（决定 `config.json` 的 `output_mode`）：
+
+| 查看方式 | `output_mode` | 适合谁 | 怎么看 |
+|---|---|---|---|
+| Obsidian 仪表盘（推荐） | `md`（默认） | 愿意装 Obsidian，要完整功能 | 打开库里的 `微信读书/阅读统计/阅读统计.md` |
+| 纯网页 | `html` | 不想装 Obsidian，双击就能看 | 浏览器打开 `微信读书/阅读统计/阅读统计.html` |
+| 两者都要 | `both` | 自己用 Obsidian，也想分享网页版 | 两种都生成 |
+
+- `md`：生成 Obsidian DataviewJS 版，功能最全（周/月/天切换、历史月份入口、前端换肤）；
+- `html`：生成独立网页，**不需要 Obsidian、不需要任何插件**，浏览器直接打开；
+- `both`：两种都生成。
+
 **方式一：交给 AI 助手配置（推荐）**
 1. 解压 `weread-readstats-template.zip`，得到 `README.md` 和 `weread_tmp/` 文件夹；
 2. 把整个文件夹路径发给你的 AI 助手（如 Marvis），告诉它「帮我按 README 配置这个微信读书阅读统计模板」；
-3. AI 会读取 `README.md` 和 `config.json`，引导你：新建 Obsidian 库（或告诉你填现有库路径）、获取 API key、填写 config.json、运行刷新，全程不需要手动改脚本。
+3. AI 会读取 `README.md` 和 `config.json`，引导你：新建 Obsidian 库（或告诉你填现有库路径）、获取 API key、填写 config.json（含 output_mode）、运行刷新，全程不需要手动改脚本。
 
 **方式二：完全手动配置**
 1. 解压压缩包；
 2. 按下面「配置步骤」完成 API key 与 config.json 填写；
 3. 在项目目录运行 `python weread_tmp/refresh.py` 一键刷新；
-4. 用 Obsidian 打开库，打开 `微信读书/阅读统计/阅读统计.md` 查看仪表盘。
+4. 按你选的 output_mode 打开对应文件查看（Obsidian 或浏览器）。
 
-> 无论哪种方式，**都不需要安装额外的 Python 包**（仅用标准库），Python 3.8+ 即可；唯一需要的是 Obsidian 的 Dataview 社区插件。
+> 无论哪种方式，**都不需要安装额外的 Python 包**（仅用标准库），Python 3.8+ 即可；只有选 `md` / `both` 模式需要 Obsidian 的 Dataview 社区插件（安装步骤见「配置步骤」第 3 节）。
 
 ---
 
@@ -98,15 +110,36 @@ weread-readstats-template/
 | `stats_rel_dir` | 阅读统计输出目录（相对库根，可含子目录） | `微信读书/阅读统计` |
 | `shelf_rel_dir` | 书架笔记目录（相对库根，需与你的书架笔记位置一致） | `书影音/我的书架` |
 | `scripts_dir` | 脚本目录名（一般不用改） | `weread_tmp` |
+| `output_mode` | 输出模式：`md`（Obsidian 版）/ `html`（纯网页版）/ `both`（两者都生成） | `md` |
 
 - 目录可暂不存在，脚本会自动创建（除书架目录外）。
 - 如果库根下还有一层专属子目录（例如 `资料归档`），把它拼进 `vault_root` 或相对目录均可，保持三段拼接结果与真实路径一致即可。
 - 路径分隔符 `/` 与 `\` 均可。
 
-### 3. 确认 Obsidian 插件
-- 安装并启用 **Dataview** 插件（社区插件，用于渲染 `dataviewjs` 代码块）。
+### 3. 确认 Obsidian 插件（仅 `md` / `both` 模式需要）
+- 安装并启用 **Dataview** 插件（社区插件，用于渲染 `dataviewjs` 代码块）：
+  1. Obsidian 左下角点击「设置」（齿轮图标）→ 左侧「第三方插件」；
+  2. 若显示「安全模式（Restricted mode）已开启」，点击关闭（Obsidian 需要先允许社区插件）；
+  3. 点击「浏览」（Browse）→ 搜索框输入 `Dataview` → 找到 **Dataview**（作者 blacksmithgu）→ 点击「安装」（Install）；
+  4. 安装后点击「启用」（Enable）；启用后在「已安装插件」列表里能看到 Dataview 且开关为打开状态。
 - `阅读统计.md` 需放在你的库内（`vault_root` 下），Obsidian 打开该笔记即可看到仪表盘。
 - 书架笔记需存在（`shelf_rel_dir` 目录），`sync_notes.py` 会按书名匹配并写入/更新划线区块；未匹配到会自动新建笔记。
+- 选 `html` 模式的朋友**跳过本节**，不需要安装任何 Obsidian 插件。
+
+---
+
+## 二·五、网页模式（不想用 Obsidian 也可以）
+
+如果不想装 Obsidian，`output_mode` 设为 `html` 即可，看板输出为独立网页，浏览器双击打开：
+
+1. `weread_tmp/config.json` 中把 `"output_mode"` 改为 `"html"`；
+2. 在项目目录运行 `python weread_tmp/refresh.py`；
+3. 打开 `微信读书/阅读统计/阅读统计.html`（无需 Obsidian、无需任何插件）。
+
+说明：
+- 网页版包含周 / 月 / 天三视图切换、7 套配色换肤（选择会记住）、封面画廊自动滚动、周环比进度条，与 Obsidian 版一致的观感；
+- `html` 模式不生成 md 文件；`both` 模式则 Obsidian 版和网页版同时生成；
+- 网页版是单文件自包含（数据内嵌），可以复制给手机 / 发给朋友直接打开看。
 
 ---
 
@@ -123,7 +156,8 @@ python weread_tmp/refresh.py
 2. 运行 `prep_dash.py` 计算 `dash_data.json`；
 3. 归档当月数据到 `vault/data/YYYY-MM.json`，并更新本周快照；
 4. 运行 `sync_notes.py` 同步书架笔记；
-5. 运行 `gen_dv.py` 生成/更新 `阅读统计.md`（DataviewJS 版，含历史月份入口）。
+5. 按 `output_mode` 生成 `阅读统计.md`（Obsidian 版，含历史月份入口）和/或 `阅读统计.html`（网页版）；
+6. 生成后自动检查并清除外部同步服务注入的 AIGC frontmatter（有则删除，控制台打印 `aigc cleaned: ...`）。
 
 > 失败兜底：任一步失败会自动回滚旧数据，看板不会被清空。
 
@@ -183,8 +217,9 @@ python weread_tmp/gen_monthly_summary.py 2026-07
 **Q7：换肤下拉能记住我的选择吗？**
 能。主题选择保存在浏览器 localStorage（`weread-wr-theme`），下次打开自动应用。
 
-**Q8：会写 frontmatter 吗？**
+**Q8：会写 frontmatter 吗？为什么有时顶部出现 AIGC 标记？**
 仪表盘 `阅读统计.md` 无 frontmatter，直接输出 `dataviewjs` 代码块；书架笔记只更新「📝 微信读书划线」区块与 status，不破坏原有 frontmatter。
+如果顶部出现 `--- AIGC: ... ---` 溯源标记（含 ContentProducer / ProduceID / ReservedCode），是外部同步/备份服务（如 fast-note-sync）在同步回本地时注入的，**不是脚本生成的**。脚本每次刷新后会自动检查并删除这类标记（控制台打印 `aigc cleaned: ...`）；根治办法是在该同步服务设置中关闭「AI 内容标记」或暂停同步验证。
 
 ---
 

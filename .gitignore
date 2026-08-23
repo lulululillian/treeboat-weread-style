@@ -22,3 +22,6 @@ run_out.txt
 # 环境/密钥（如本地新建，请勿提交）
 .env
 WEREAD_API_KEY*
+
+# 分发压缩包（构建产物）
+*.zip
