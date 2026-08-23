@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.pyc
+
+# 运行数据（个人阅读数据，勿提交）
+monthly.json
+monthly.json.bak
+dash_data.json
+dash_data.json.bak
+bm_*.json
+notebooks.json
+ids.txt
+data/
+week-snapshots/
+
+# 日志与备份
+*.log
+*.bak
+err*.txt
+run_out.txt
+
+# 环境/密钥（如本地新建，请勿提交）
+.env
+WEREAD_API_KEY*

@@ -1,0 +1,82 @@
+{
+  "current": "wu_lan_yin_hui",
+  "themes": {
+    "mi_zong_nuan_diao": {
+      "name": "米棕暖调",
+      "palette": {
+        "bg": "#FAF6E9",
+        "line": "#E6D4C0",
+        "faint": "#B9A5A8",
+        "sub": "#7E748C",
+        "main": "#414969",
+        "white": "#FFFFFF"
+      }
+    },
+    "dai_lan_wu_hui": {
+      "name": "黛蓝雾灰",
+      "palette": {
+        "bg": "#EEF2F8",
+        "line": "#D5DEEA",
+        "faint": "#98A6BC",
+        "sub": "#5B6B85",
+        "main": "#2F3E5C",
+        "white": "#FFFFFF"
+      }
+    },
+    "mo_cha_nai_you": {
+      "name": "抹茶奶油",
+      "palette": {
+        "bg": "#F4F7ED",
+        "line": "#DDE5CF",
+        "faint": "#A5B58C",
+        "sub": "#66754E",
+        "main": "#3F5128",
+        "white": "#FFFFFF"
+      }
+    },
+    "xiang_yu_zi": {
+      "name": "香芋紫",
+      "palette": {
+        "bg": "#F6F2FA",
+        "line": "#E2D8EE",
+        "faint": "#A999C2",
+        "sub": "#6F5E8C",
+        "main": "#43325E",
+        "white": "#FFFFFF"
+      }
+    },
+    "zhuan_hong_na_tie": {
+      "name": "砖红拿铁",
+      "palette": {
+        "bg": "#E8DDD0",
+        "line": "#C9B7A4",
+        "faint": "#9C8B79",
+        "sub": "#6F5F4F",
+        "main": "#8A4B33",
+        "white": "#FBF6EF"
+      }
+    },
+    "shan_hu_nai_you": {
+      "name": "珊瑚奶油",
+      "palette": {
+        "bg": "#F7EDE4",
+        "line": "#E7CDBA",
+        "faint": "#B2927C",
+        "sub": "#7E614D",
+        "main": "#C05B3C",
+        "white": "#FFFBF5"
+      }
+    },
+    "wu_lan_yin_hui": {
+      "name": "雾蓝银灰",
+      "palette": {
+        "bg": "#DCE4EF",
+        "line": "#BFCDE0",
+        "faint": "#8FA1BC",
+        "sub": "#5C6E8C",
+        "main": "#35508A",
+        "white": "#F7FAFD"
+      }
+    }
+  }
+}

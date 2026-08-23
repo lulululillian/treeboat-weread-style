@@ -1,0 +1,75 @@
+# -*- coding: utf-8 -*-
+"""
+公共配置加载器 — 微信读书阅读统计模板包
+所有脚本统一从这里读取 config.json，避免硬编码本地绝对路径。
+API key 不在此文件出现：沿用环境变量 WEREAD_API_KEY + ~/.bashrc 兜底逻辑。
+"""
+import json
+import os
+
+_CFG = None
+
+
+def _here():
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+def load():
+    """读取脚本目录下的 config.json；缺失或字段为空时回退默认值。"""
+    global _CFG
+    if _CFG is not None:
+        return _CFG
+    defaults = {
+        "vault_root": "",
+        "stats_rel_dir": "微信读书/阅读统计",
+        "shelf_rel_dir": "书影音/我的书架",
+        "scripts_dir": "weread_tmp",
+    }
+    cfg = dict(defaults)
+    cfg_path = os.path.join(_here(), "config.json")
+    if os.path.exists(cfg_path):
+        try:
+            with open(cfg_path, encoding="utf-8") as f:
+                user = json.load(f)
+            for k in cfg:
+                v = user.get(k)
+                if v not in (None, ""):
+                    cfg[k] = str(v).strip()
+        except Exception as e:
+            print("[config] config.json 解析失败，使用默认值:", e)
+    if not cfg.get("vault_root"):
+        raise SystemExit(
+            "config.json 缺少 vault_root（Obsidian 库根目录），请先在 weread_tmp/config.json 中填写"
+        )
+    _CFG = cfg
+    return _CFG
+
+
+def vault_root():
+    """Obsidian 库根目录（绝对路径，末尾带 /）。支持相对路径（相对工作区根=脚本目录的父目录）。"""
+    cfg = load()
+    root = cfg["vault_root"]
+    if not os.path.isabs(root):
+        base = os.path.dirname(_here())
+        root = os.path.normpath(os.path.join(base, root))
+    return root.replace("\\", "/").rstrip("/") + "/"
+
+
+def stats_dir():
+    """阅读统计输出目录 = vault 根 + 相对目录"""
+    return os.path.join(vault_root(), load()["stats_rel_dir"]).replace("\\", "/")
+
+
+def data_dir():
+    """历史数据目录（dash 归档 + 周快照）"""
+    return os.path.join(stats_dir(), "data").replace("\\", "/")
+
+
+def shelf_dir():
+    """书架笔记目录 = vault 根 + 相对目录"""
+    return os.path.join(vault_root(), load()["shelf_rel_dir"]).replace("\\", "/")
+
+
+def vault_name():
+    """从 vault_root 推导 Obsidian 库名（用于 obsidian:// URI）"""
+    return os.path.basename(vault_root().rstrip("/"))
