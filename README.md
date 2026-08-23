@@ -3,7 +3,7 @@
 基于官方「微信读书」skill 网关接口（`i.weread.qq.com/api/agent/gateway`）的个人阅读统计仪表盘：
 输出到 Obsidian（DataviewJS 渲染），内置 **7 套配色主题**（米棕暖调 / 黛蓝雾灰 / 抹茶奶油 / 香芋紫 / 砖红拿铁 / 珊瑚奶油 / 雾蓝银灰）、**封面横向画廊自动滚动**、**周环比进度条**、**热力图**、**前端换肤下拉**。
 
-模板已去除所有本地绝对路径，朋友拿到后只需填写自己的 API key 与 Obsidian 库路径即可使用。
+模板已去除所有本地绝对路径，只需填写自己的 API key 与 Obsidian 库路径即可使用。
 
 ---
 
@@ -95,11 +95,14 @@ weread-readstats-template/
 ## 一、配置步骤
 
 ### 1. 获取 API key
-1. 在微信读书 skill 中按官方说明生成你的 `WEREAD_API_KEY`（个人令牌，不要泄露）。
-2. 两种生效方式任选其一：
+1. 打开手机**微信读书** App → 右下角「我的」→ 右上角「设置」→ 找到「微信读书 Skill」→ 进入后下拉找到「获取 API Key」，点击生成并复制。
+   （备用：电脑浏览器打开 https://weread.qq.com/r/weread-skills ，点击「快速配置」并用手机微信扫码，登录成功后页面会显示同样的 Key。）
+2. 获取到以 `wrk-` 开头的 **API Key** 后，两种生效方式任选其一：
    - 写入环境变量：`export WEREAD_API_KEY="你的key"`（写入 `~/.bashrc` / `~/.profile` 可长期生效）；
    - 或直接在 `~/.bashrc` 末尾追加一行：`WEREAD_API_KEY="你的key"`。
 3. 脚本读取顺序：环境变量 `WEREAD_API_KEY` → `~/.bashrc` → `~/.profile`。模板不保存你的 key。
+
+> Key 绑定你的微信读书账号，数据仅你可见；除非主动重置，否则长期有效。请妥善保管，**不要公开发布或发给他人**。
 
 ### 2. 修改 weread_tmp/config.json
 打开 `weread_tmp/config.json`，填写三处：
