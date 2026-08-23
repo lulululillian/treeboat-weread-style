@@ -23,7 +23,7 @@
 
 **方式一：交给 AI 助手配置（推荐）**
 1. 解压 `weread-readstats-template.zip`，得到 `README.md` 和 `weread_tmp/` 文件夹；
-2. 把整个文件夹路径发给你的 AI 助手（如 Marvis），告诉它「帮我按 README 配置这个微信读书阅读统计模板」；
+2. 把整个文件夹路径发给你的 AI 助手，告诉它「帮我按 README 配置这个微信读书阅读统计模板」；
 3. AI 会读取 `README.md` 和 `config.json`，引导你：新建 Obsidian 库（或告诉你填现有库路径）、获取 API key、填写 config.json（含 output_mode）、运行刷新，全程不需要手动改脚本。
 
 **方式二：完全手动配置**
