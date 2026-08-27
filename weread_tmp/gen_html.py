@@ -464,6 +464,7 @@ def day_view():
             dt = datetime.datetime.fromtimestamp(t, TZ)
             if dt.year == YEAR and dt.month == MONTH and dt.day == d:
                 hour_counts[dt.hour] += 1
+    total_today_marks = sum(hour_counts.values())
     if hour_counts:
         max_h = max(hour_counts.values()) or 1
         hbars = []
@@ -471,53 +472,65 @@ def day_view():
             c = hour_counts[h]
             pct = int(c / max_h * 100)
             hbars.append(
-                f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-                f'<div style="width:42px;font-size:11px;color:#7E748C;text-align:right;flex-shrink:0">{h:02d}:00</div>'
-                f'<div style="flex:1;height:8px;background:#E6D4C0;border-radius:4px;overflow:hidden">'
-                f'<div style="height:100%;width:{pct}%;background:#414969;border-radius:4px"></div></div>'
-                f'<div style="width:36px;font-size:11px;color:#414969;text-align:right;flex-shrink:0">{c} 条</div></div>')
-        hour_block = (
-            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;margin-bottom:14px">'
-            f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">今日阅读时段分布</div>'
-            f'{"".join(hbars)}</div>')
+                f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+                f'<div style="width:40px;font-size:11px;color:#7E748C;text-align:right;flex-shrink:0">{h:02d}:00</div>'
+                f'<div style="flex:1;height:10px;background:#E6D4C0;border-radius:5px;overflow:hidden">'
+                f'<div style="height:100%;width:{pct}%;background:linear-gradient(90deg,#414969,#5B6B85);border-radius:5px"></div></div>'
+                f'<div style="width:32px;font-size:11px;color:#414969;font-weight:600;text-align:right;flex-shrink:0">{c}</div></div>')
+        hour_card = (
+            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column">'
+            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日阅读时段</div>'
+            f'<div style="font-size:11px;color:#B9A5A8;margin-bottom:14px">共 {total_today_marks} 条划线</div>'
+            f'<div style="flex:1">{"".join(hbars)}</div></div>')
     else:
-        hour_block = (
-            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 16px;margin-bottom:14px">'
-            f'<span style="font-size:12px;color:#B9A5A8">今日暂无划线记录</span></div>')
+        hour_card = (
+            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center">'
+            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日阅读时段</div>'
+            f'<div style="font-size:12px;color:#B9A5A8;margin-top:8px">今日暂无划线记录</div></div>')
 
     # ---- 今日在读进度（今天读了哪些书，当前进度）----
-    if today_shorts:
-        pbars = []
-        for bk in books:
-            if bk["short"] not in today_shorts:
-                continue
+    today_books_list = [bk for bk in books if bk["short"] in today_shorts]
+    if today_books_list:
+        pitems = []
+        for bk in today_books_list:
             disp = bk.get("title") or bk["short"]
             prog = bk.get("progress", 0)
             finished = bk.get("finished", False)
-            status = '<span style="background:#414969;color:#FAF6E9;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">读完</span>' if finished else '<span style="background:#E6D4C0;color:#414969;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">在读</span>'
-            pbars.append(
-                f'<div style="margin-bottom:10px">'
-                f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
-                f'<div style="flex:1;min-width:0;font-size:13px;color:#414969;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{disp}</div>'
-                f'{status}<div style="font-size:11px;color:#414969;font-weight:500;min-width:36px;text-align:right">{prog}%</div></div>'
-                f'<div style="height:6px;background:#E6D4C0;border-radius:3px;overflow:hidden">'
-                f'<div style="height:100%;width:{prog}%;background:#414969;border-radius:3px"></div></div></div>')
-        progress_block = (
-            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;margin-bottom:14px">'
-            f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">今日在读进度</div>'
-            f'{"".join(pbars)}</div>')
+            cov = bk.get("cover", "")
+            status = ('<span style="background:#414969;color:#FAF6E9;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">读完</span>'
+                      if finished else
+                      '<span style="background:#E6D4C0;color:#414969;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">在读</span>')
+            pitems.append(
+                f'<div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-start">'
+                f'<div style="width:36px;height:50px;flex-shrink:0;background-image:url(\'{cov}\');background-size:cover;background-position:center;background-color:#E6D4C0;border-radius:5px"></div>'
+                f'<div style="flex:1;min-width:0">'
+                f'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
+                f'<div style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#414969;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{disp}</div>'
+                f'{status}</div>'
+                f'<div style="display:flex;align-items:center;gap:6px">'
+                f'<div style="flex:1;height:6px;background:#E6D4C0;border-radius:3px;overflow:hidden">'
+                f'<div style="height:100%;width:{prog}%;background:linear-gradient(90deg,#414969,#5B6B85);border-radius:3px"></div></div>'
+                f'<div style="font-size:11px;color:#414969;font-weight:600;min-width:32px;text-align:right">{prog}%</div></div></div></div>')
+        progress_card = (
+            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column">'
+            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日在读</div>'
+            f'<div style="font-size:11px;color:#B9A5A8;margin-bottom:14px">共 {len(today_books_list)} 本</div>'
+            f'<div style="flex:1">{"".join(pitems)}</div></div>')
     else:
-        progress_block = (
-            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 16px;margin-bottom:14px">'
-            f'<span style="font-size:12px;color:#B9A5A8">今日暂无阅读记录</span></div>')
+        progress_card = (
+            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center">'
+            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日在读</div>'
+            f'<div style="font-size:12px;color:#B9A5A8;margin-top:8px">今日暂无阅读记录</div></div>')
 
     return f'''
 <section id="v-day" class="view">
 <div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
 <div><div style="font-size:12px;color:#7E748C">今日读书时长 · {MONTH} 月 {d} 日 {wdn}</div><div style="font-size:24px;font-weight:500;margin-top:6px">{mins} 分钟</div></div>
 </div>
-{hour_block}
-{progress_block}
+<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;align-items:stretch">
+{hour_card}
+{progress_card}
+</div>
 <div style="margin-bottom:14px">
 <div style="font-size:14px;font-weight:500;margin-bottom:12px">读书卡</div>
 {cards_html(day_range=(d, d), label="今日")}</div>
