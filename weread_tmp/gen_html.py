@@ -487,13 +487,17 @@ def ring_clock_svg(hour_counts, size=140, label="划线"):
         else:
             stroke, opacity = "#414969", f"{0.3 + 0.7 * (count / max_count):.2f}"
         segments.append(
-            f'<path d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
+            f'<path class="wr-ring-seg" d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
             f'fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{opacity}" '
             f'stroke-dasharray="{arc_len:.1f}" stroke-dashoffset="{arc_len:.1f}" '
-            f'style="animation:wereadRingFill 0.4s ease-out {h * 15}ms forwards"/>')
+            f'style="animation:wereadRingFill 0.4s ease-out {h * 15}ms forwards;cursor:pointer;'
+            f'transition:stroke-width .15s ease,stroke-opacity .15s ease">'
+            f'<title>{h:02d}:00 · {count} 条划线</title></path>')
     fs = int(size * 0.17)
     ss = int(size * 0.075)
+    hover_w = stroke_w + 3
     return (f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="flex-shrink:0;display:block">'
+            f'<style>.wr-ring-seg:hover{{stroke-width:{hover_w}!important;stroke-opacity:1!important;filter:brightness(1.15)}}</style>'
             f'{"".join(segments)}'
             f'<text x="{cx}" y="{cy - 1}" text-anchor="middle" font-size="{fs}" font-weight="600" fill="#414969">{total}</text>'
             f'<text x="{cx}" y="{cy + ss + 3}" text-anchor="middle" font-size="{ss}" fill="#B9A5A8">{label}</text>'
