@@ -1,4 +1,4 @@
-# 微信读书阅读统计 · 可分享模板
+# 树舟・微信读书 Obsidian 阅读看板
 
 基于官方「微信读书」skill 网关接口（`i.weread.qq.com/api/agent/gateway`）的个人阅读统计仪表盘：
 输出到 Obsidian（DataviewJS 渲染），内置 **7 套配色主题**（米棕暖调 / 黛蓝雾灰 / 抹茶奶油 / 香芋紫 / 砖红拿铁 / 珊瑚奶油 / 雾蓝银灰）、**封面横向画廊自动滚动**（点击封面直接跳转对应书架笔记）、**24小时环形时钟动效**（月/周/天三视图顶部概览嵌入，顺时针渐入填充，颜色深浅＝划线条数）、**周环比进度条**、**热力图**、**前端换肤下拉**、**月/周/天三视图**（读书卡按视图时间范围过滤：月视图全量、周视图仅本周、日视图仅当天）、**读完日期自动回写**（书架笔记 finish_date 字段，读完当天自动填充）。
@@ -23,7 +23,7 @@
 
 **方式一：交给 AI 助手配置（推荐）**
 1. 解压 `weread-readstats-template.zip`，得到 `README.md` 和 `weread_tmp/` 文件夹；
-2. 把整个文件夹路径发给你的 AI 助手，告诉它「帮我按 README 配置这个微信读书阅读统计模板」；
+2. 把整个文件夹路径发给你的 AI 助手，告诉它「帮我按 README 配置这个树舟微信读书 Obsidian 阅读看板」；
 3. AI 会读取 `README.md` 和 `config.json`，引导你：新建 Obsidian 库（或告诉你填现有库路径）、获取 API key、填写 config.json（含 output_mode）、运行刷新，全程不需要手动改脚本。
 
 **方式二：完全手动配置**
@@ -45,8 +45,9 @@ weread-readstats-template/
     ├── config.json              # ← 唯一需要修改的配置文件
     ├── config.py                # 公共配置加载器（自动读取 config.json）
     ├── refresh.py               # 一键刷新：拉数据 → 生成看板 → 同步书架笔记
+    ├── update.py                # 一键自动更新：从 GitHub 拉取最新脚本（保留你的配置）
     ├── prep_dash.py             # 由 monthly.json 实时计算 dash_data.json
-    ├── gen_html.py              # 周/月/天三视图渲染组件（主题/画廊/换肤）
+    ├── gen_html.py              # 周/月/天三视图渲染组件（主题/画廊/换肤/环形时钟）
     ├── gen_dv.py                # 生成 Obsidian DataviewJS 版阅读统计.md
     ├── sync_notes.py            # 同步实时进度/划线回写「我的书架」笔记
     ├── archive_month.py         # 归档指定历史月份（生成 data/YYYY-MM.json）
@@ -174,6 +175,41 @@ python weread_tmp/archive_month.py 2026-07
 python weread_tmp/gen_monthly_summary.py
 python weread_tmp/gen_monthly_summary.py 2026-07
 ```
+
+---
+
+## 二·九、如何更新到新版本
+
+模板会持续更新（新功能 / 修复 / 优化），更新非常简单，**一条命令搞定**，你的配置和主题选择会自动保留。
+
+### 一键自动更新（推荐）
+
+在项目目录（`weread_tmp` 的父目录）执行：
+
+```bash
+python weread_tmp/update.py
+```
+
+脚本会自动完成：
+1. 备份当前版本到 `weread_tmp/_backup_时间戳/`（更新失败可回滚）；
+2. 从 GitHub 拉取最新版本的所有脚本文件；
+3. **自动保留你的 `config.json`（库路径配置）和 `themes.json`（主题选择），不会被覆盖**；
+4. 显示更新结果（成功 / 失败的文件列表）。
+
+更新完成后，运行一次刷新即可应用新版本：
+
+```bash
+python weread_tmp/refresh.py
+```
+
+> 如果某些文件下载失败（可能是网络连接 GitHub 不稳定），重新运行 `python weread_tmp/update.py` 即可，已成功更新的文件不受影响。
+
+### 手动更新（备选）
+
+如果自动更新一直失败，也可以手动更新：
+1. 从 GitHub 下载最新的 `weread_tmp/` 里的 `.py` 文件；
+2. 覆盖到你本地的 `weread_tmp/` 目录（**不要覆盖 `config.json` 和 `themes.json`**）；
+3. 运行 `python weread_tmp/refresh.py`。
 
 ---
 

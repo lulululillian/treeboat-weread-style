@@ -20,6 +20,7 @@ week-snapshots/
 *.bak
 err*.txt
 run_out.txt
+_backup_*/
 
 # 环境/密钥（如本地新建，请勿提交）
 .env
