@@ -462,7 +462,7 @@ def week_daily_list_html(a, b):
 
 # ================= 通用：24小时环形时钟图（顺时针渐入动效） =================
 def ring_clock_svg(hour_counts, size=140, label="划线"):
-    """hour_counts: {hour: count}; 生成带顺时针渐入+悬停波浪动效的24小时环形时钟 SVG"""
+    """hour_counts: {hour: count}; 生成带顺时针渐入+JS悬停波浪动效的24小时环形时钟 SVG"""
     import math
     total = sum(hour_counts.values())
     if not hour_counts or total == 0:
@@ -486,14 +486,13 @@ def ring_clock_svg(hour_counts, size=140, label="划线"):
             stroke, opacity = "#E6D4C0", "0.35"
         else:
             stroke, opacity = "#414969", f"{0.3 + 0.7 * (count / max_count):.2f}"
-        wave_delay = h * 0.06
         segments.append(
-            f'<path class="wr-ring-seg" d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
+            f'<path class="wr-ring-seg" data-hour="{h}" d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
             f'fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{opacity}" '
             f'stroke-dasharray="{arc_len:.1f}" stroke-dashoffset="{arc_len:.1f}" '
             f'style="animation:wereadRingFill 0.4s ease-out {h * 15}ms forwards;cursor:pointer;'
             f'transition:stroke-width .15s ease,stroke-opacity .15s ease;'
-            f'--wr-base:{opacity};--wr-delay:{wave_delay}s">'
+            f'--wr-base:{opacity}">'
             f'<title>{h:02d}:00 · {count} 条划线</title></path>')
     fs = int(size * 0.17)
     ss = int(size * 0.075)
@@ -503,10 +502,6 @@ def ring_clock_svg(hour_counts, size=140, label="划线"):
             f'@keyframes wrRingWave {{'
             f'  0%,100% {{ stroke-opacity:var(--wr-base,0.5); filter:brightness(1); }}'
             f'  50% {{ stroke-opacity:1; filter:brightness(1.35); }}'
-            f'}}'
-            f'.wr-ring-svg:hover .wr-ring-seg {{'
-            f'  animation:wrRingWave 1.5s ease-in-out infinite !important;'
-            f'  animation-delay:var(--wr-delay,0s) !important;'
             f'}}'
             f'.wr-ring-seg:hover {{'
             f'  stroke-width:{hover_w}!important;'
@@ -736,6 +731,30 @@ segs.forEach(btn => {{
     document.getElementById('v-' + btn.dataset.view).classList.add('active');
   }});
 }});
+// 环形时钟波浪动效：鼠标悬停某段时，以该段为中心向两侧扩散波浪
+function initRingClockWave() {{
+  document.querySelectorAll('.wr-ring-svg').forEach(function(svg) {{
+    var segs = svg.querySelectorAll('.wr-ring-seg');
+    segs.forEach(function(seg) {{
+      seg.addEventListener('mouseenter', function() {{
+        var h = parseInt(seg.getAttribute('data-hour'));
+        segs.forEach(function(s) {{
+          var i = parseInt(s.getAttribute('data-hour'));
+          var dist = Math.min(Math.abs(i - h), 24 - Math.abs(i - h));
+          s.style.animation = 'wrRingWave 1.2s ease-in-out infinite';
+          s.style.animationDelay = (dist * 0.06) + 's';
+        }});
+      }});
+      seg.addEventListener('mouseleave', function() {{
+        segs.forEach(function(s) {{
+          s.style.animation = '';
+          s.style.animationDelay = '';
+        }});
+      }});
+    }});
+  }});
+}}
+initRingClockWave();
 </script>
 </body>
 </html>'''

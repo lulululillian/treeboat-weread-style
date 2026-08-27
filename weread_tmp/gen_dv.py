@@ -179,10 +179,27 @@ const W = `%WEEK%`;
 const D = `%DAY%`;
 const root = dv.container.createEl('div');
 root.innerHTML = H + M + W + D;
-// 环形时钟波浪动效：全局注入 style，确保 Obsidian DataviewJS 环境下生效
+// 环形时钟波浪动效：注入 keyframes + JS事件绑定，以悬停段为中心向两侧扩散
 const _wrRingStyle = document.createElement('style');
-_wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-opacity:var(--wr-base,0.5);filter:brightness(1)}50%{stroke-opacity:1;filter:brightness(1.35)}}.wr-ring-svg:hover .wr-ring-seg{animation:wrRingWave 1.5s ease-in-out infinite!important;animation-delay:var(--wr-delay,0s)!important}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
+_wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-opacity:var(--wr-base,0.5);filter:brightness(1)}50%{stroke-opacity:1;filter:brightness(1.35)}}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
 root.appendChild(_wrRingStyle);
+root.querySelectorAll('.wr-ring-svg').forEach(function(svg){
+  var segs=svg.querySelectorAll('.wr-ring-seg');
+  segs.forEach(function(seg){
+    seg.addEventListener('mouseenter',function(){
+      var h=parseInt(seg.getAttribute('data-hour'));
+      segs.forEach(function(s){
+        var i=parseInt(s.getAttribute('data-hour'));
+        var dist=Math.min(Math.abs(i-h),24-Math.abs(i-h));
+        s.style.animation='wrRingWave 1.2s ease-in-out infinite';
+        s.style.animationDelay=(dist*0.06)+'s';
+      });
+    });
+    seg.addEventListener('mouseleave',function(){
+      segs.forEach(function(s){s.style.animation='';s.style.animationDelay='';});
+    });
+  });
+});
 function act(v) {
   ['week','month','day'].forEach(function(x) {
     const sec = root.querySelector('#v-' + x);
