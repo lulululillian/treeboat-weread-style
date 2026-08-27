@@ -181,7 +181,7 @@ const root = dv.container.createEl('div');
 root.innerHTML = H + M + W + D;
 // 环形时钟波浪动效：注入 keyframes + JS事件绑定，以悬停段为中心向两侧扩散
 const _wrRingStyle = document.createElement('style');
-_wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-opacity:var(--wr-base,0.5);filter:brightness(1)}50%{stroke-opacity:1;filter:brightness(1.35)}}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
+_wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-width:var(--wr-base-w,12)}50%{stroke-width:calc(var(--wr-base-w,12) + 5)}}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
 root.appendChild(_wrRingStyle);
 root.querySelectorAll('.wr-ring-svg').forEach(function(svg){
   var segs=svg.querySelectorAll('.wr-ring-seg');
@@ -191,12 +191,14 @@ root.querySelectorAll('.wr-ring-svg').forEach(function(svg){
       segs.forEach(function(s){
         var i=parseInt(s.getAttribute('data-hour'));
         var dist=Math.min(Math.abs(i-h),24-Math.abs(i-h));
-        s.style.animation='wrRingWave 1.2s ease-in-out infinite';
-        s.style.animationDelay=(dist*0.06)+'s';
+        var delay=dist*0.05+(dist%2)*0.015;
+        s.style.strokeDashoffset='0';
+        s.style.animation='wrRingWave 1.5s ease-in-out infinite';
+        s.style.animationDelay=delay+'s';
       });
     });
     seg.addEventListener('mouseleave',function(){
-      segs.forEach(function(s){s.style.animation='';s.style.animationDelay='';});
+      segs.forEach(function(s){s.style.animation='';s.style.animationDelay='';s.style.strokeDashoffset='0';});
     });
   });
 });

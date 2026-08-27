@@ -492,16 +492,16 @@ def ring_clock_svg(hour_counts, size=140, label="划线"):
             f'stroke-dasharray="{arc_len:.1f}" stroke-dashoffset="{arc_len:.1f}" '
             f'style="animation:wereadRingFill 0.4s ease-out {h * 15}ms forwards;cursor:pointer;'
             f'transition:stroke-width .15s ease,stroke-opacity .15s ease;'
-            f'--wr-base:{opacity}">'
+            f'--wr-base:{opacity};--wr-base-w:{stroke_w}">'
             f'<title>{h:02d}:00 · {count} 条划线</title></path>')
     fs = int(size * 0.17)
     ss = int(size * 0.075)
-    hover_w = stroke_w + 3
+    hover_w = stroke_w + 7
     return (f'<svg class="wr-ring-svg" width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="flex-shrink:0;display:block">'
             f'<style>'
             f'@keyframes wrRingWave {{'
-            f'  0%,100% {{ stroke-opacity:var(--wr-base,0.5); filter:brightness(1); }}'
-            f'  50% {{ stroke-opacity:1; filter:brightness(1.35); }}'
+            f'  0%,100% {{ stroke-width:var(--wr-base-w,12); }}'
+            f'  50% {{ stroke-width:calc(var(--wr-base-w,12) + 5); }}'
             f'}}'
             f'.wr-ring-seg:hover {{'
             f'  stroke-width:{hover_w}!important;'
@@ -741,14 +741,17 @@ function initRingClockWave() {{
         segs.forEach(function(s) {{
           var i = parseInt(s.getAttribute('data-hour'));
           var dist = Math.min(Math.abs(i - h), 24 - Math.abs(i - h));
-          s.style.animation = 'wrRingWave 1.2s ease-in-out infinite';
-          s.style.animationDelay = (dist * 0.06) + 's';
+          var delay = dist * 0.05 + (dist % 2) * 0.015;
+          s.style.strokeDashoffset = '0';
+          s.style.animation = 'wrRingWave 1.5s ease-in-out infinite';
+          s.style.animationDelay = delay + 's';
         }});
       }});
       seg.addEventListener('mouseleave', function() {{
         segs.forEach(function(s) {{
           s.style.animation = '';
           s.style.animationDelay = '';
+          s.style.strokeDashoffset = '0';
         }});
       }});
     }});
