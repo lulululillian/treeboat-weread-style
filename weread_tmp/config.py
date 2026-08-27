@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-公共配置加载器 — 树舟・微信读书 Obsidian 阅读看板
+公共配置加载器 — 舟读・微信读书 Obsidian 阅读看板
 所有脚本统一从这里读取 config.json，避免硬编码本地绝对路径。
 API key 不在此文件出现：沿用环境变量 WEREAD_API_KEY + ~/.bashrc 兜底逻辑。
 """

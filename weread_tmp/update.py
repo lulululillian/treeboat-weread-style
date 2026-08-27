@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-树舟・微信读书 Obsidian 阅读看板 · 一键自动更新脚本
+舟读・微信读书 Obsidian 阅读看板 · 一键自动更新脚本
 从 GitHub 拉取最新版本的脚本文件，自动保留用户的 config.json 和 themes.json。
 
 使用方式：
