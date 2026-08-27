@@ -207,6 +207,19 @@ bindThemeSel(root);
     e.preventDefault();
     g.scrollLeft += e.deltaY;
   }, {passive:false});
+  // 封面点击跳转：事件委托绑定到 document，防止 DataviewJS 重渲染/导航回来后事件丢失
+  if (!window.__weread_cover_click_bound) {
+    window.__weread_cover_click_bound = true;
+    document.addEventListener('click', function(e){
+      const a = e.target.closest('#wr-cover-gallery a[data-note]');
+      if (!a) return;
+      e.preventDefault();
+      const note = a.getAttribute('data-note');
+      if (note && typeof app !== 'undefined' && app.workspace) {
+        app.workspace.openLinkText(note, '', false);
+      }
+    });
+  }
   try {
     new IntersectionObserver(function(es){
       es.forEach(function(en){ visible = en.isIntersecting; });

@@ -293,10 +293,10 @@ def cover_gallery_html():
         tstr = fmt_sec(b.get("sec", 0))
         cards.append(
             f'<div style="flex:0 0 auto;width:96px;text-align:center">'
-            f'<a href="{ob_uri(disp)}" style="text-decoration:none;display:block" title="打开笔记：{esc(disp)}">'
+            f'<a href="{ob_uri(disp)}" data-note="{esc(disp)}" style="text-decoration:none;display:block;cursor:pointer" title="打开笔记：{esc(disp)}">'
             f'<img src="{esc(cov)}" alt="{esc(disp)}" loading="lazy" '
             f'style="width:96px;height:128px;object-fit:cover;border-radius:10px;'
-            f'border:0.5px solid #E6D4C0;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer"/>'
+            f'border:0.5px solid #E6D4C0;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08);pointer-events:none"/>'
             f'</a>'
             f'<div style="font-size:11px;color:#414969;margin-top:6px;overflow:hidden;'
             f'text-overflow:ellipsis;white-space:nowrap;max-width:96px">{esc(disp)}</div>'
