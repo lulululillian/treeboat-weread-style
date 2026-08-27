@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""生成 Obsidian DataviewJS 版阅读统计（周/月/天 tab，vault 内渲染）
+r"""生成 Obsidian DataviewJS 版阅读统计（周/月/天 tab，vault 内渲染）
 - 当前月：阅读统计.md，头部含历史月份入口按钮
 - 历史月：扫描 data\*.json，逐个生成 阅读统计-YYYY-MM.md（月视图快照）
 """
@@ -110,7 +110,7 @@ def theme_sel_html():
             'font-family:inherit;cursor:pointer;outline:none" title="切换配色">' + opts + '</select>')
 
 def hist_links_html():
-    """扫描 data\YYYY-MM.json（排除当前月），生成历史入口链接"""
+    r"""扫描 data\YYYY-MM.json（排除当前月），生成历史入口链接"""
     if not os.path.isdir(DATA_DIR):
         return ""
     files = sorted(glob.glob(os.path.join(DATA_DIR, "*.json")))

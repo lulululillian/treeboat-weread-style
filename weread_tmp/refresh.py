@@ -55,7 +55,7 @@ def fetch_monthly():
 
 
 def save_week_snapshot(here):
-    """归档本周快照到 vault data\week-snapshots\week-YYYY-MM-DD.json（周一起始日）
+    r"""归档本周快照到 vault data\week-snapshots\week-YYYY-MM-DD.json（周一起始日）
     供周视图计算「较上周日均」环比；每次刷新都更新本周快照。"""
     try:
         with open(os.path.join(here, "dash_data.json"), encoding="utf-8") as f:
