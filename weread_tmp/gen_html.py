@@ -273,10 +273,19 @@ def cards_html(day_range=None, label="本月"):
 
 def summary_html():
     total_str = fmt_sec(total_sec); n_books = len(books)
-    return f'''<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px">
-<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px"><div style="font-size:12px;color:#7E748C">本月总时长</div><div style="font-size:24px;font-weight:500;margin-top:6px">{total_str}</div></div>
-<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px"><div style="font-size:12px;color:#7E748C">阅读天数</div><div style="font-size:24px;font-weight:500;margin-top:6px">{read_days} 天</div></div>
-<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px"><div style="font-size:12px;color:#7E748C">本月书目</div><div style="font-size:24px;font-weight:500;margin-top:6px">{n_books} 本</div></div>
+    last_day = max(day_sec.keys()) if day_sec else 28
+    ring = ring_clock_svg(_hour_counts_in_range(1, last_day), size=130, label="本月划线")
+    ring_html = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:10px 14px;'
+                 f'display:flex;align-items:center;justify-content:center;flex:0 0 auto">{ring}</div>') if ring else ''
+    return f'''<div style="display:flex;gap:12px;margin-bottom:16px;align-items:stretch;flex-wrap:wrap">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 16px;flex:1;display:flex;flex-direction:column;justify-content:center">
+<div style="font-size:12px;color:#7E748C">本月总时长</div><div style="font-size:28px;font-weight:500;margin-top:4px">{total_str}</div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:12px 14px"><div style="font-size:12px;color:#7E748C">阅读天数</div><div style="font-size:20px;font-weight:500;margin-top:4px">{read_days} 天</div></div>
+<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:12px 14px"><div style="font-size:12px;color:#7E748C">本月书目</div><div style="font-size:20px;font-weight:500;margin-top:4px">{n_books} 本</div></div>
+</div></div>
+{ring_html}
 </div>'''
 
 # ================= 周视图（与月视图同构，统计维度＝本周） =================
@@ -376,10 +385,18 @@ def week_stats_html(a, b):
     wbks = set()
     for d in range(a, b + 1):
         wbks.update(day_book_map.get(d, []))
-    return f'''<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-bottom:16px">
-<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px"><div style="font-size:12px;color:#7E748C">本周总时长</div><div style="font-size:24px;font-weight:500;margin-top:6px">{fmt_sec(wsec)}</div></div>
-<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px"><div style="font-size:12px;color:#7E748C">本周阅读天数</div><div style="font-size:24px;font-weight:500;margin-top:6px">{wdays} 天</div></div>
-<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px"><div style="font-size:12px;color:#7E748C">本周书目</div><div style="font-size:24px;font-weight:500;margin-top:6px">{len(wbks)} 本</div></div>
+    ring = ring_clock_svg(_hour_counts_in_range(a, b), size=130, label="本周划线")
+    ring_html = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:10px 14px;'
+                 f'display:flex;align-items:center;justify-content:center;flex:0 0 auto">{ring}</div>') if ring else ''
+    return f'''<div style="display:flex;gap:12px;margin-bottom:16px;align-items:stretch;flex-wrap:wrap">
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 16px;flex:1;display:flex;flex-direction:column;justify-content:center">
+<div style="font-size:12px;color:#7E748C">本周总时长</div><div style="font-size:28px;font-weight:500;margin-top:4px">{fmt_sec(wsec)}</div></div>
+<div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:12px 14px"><div style="font-size:12px;color:#7E748C">本周阅读天数</div><div style="font-size:20px;font-weight:500;margin-top:4px">{wdays} 天</div></div>
+<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:12px 14px"><div style="font-size:12px;color:#7E748C">本周书目</div><div style="font-size:20px;font-weight:500;margin-top:4px">{len(wbks)} 本</div></div>
+</div></div>
+{ring_html}
 </div>'''
 
 def week_heat_svg(a, b):
@@ -443,93 +460,74 @@ def week_daily_list_html(a, b):
             f'<div style="width:46px;font-size:11px;color:#414969;text-align:right;flex-shrink:0">{m} 分</div></div>')
     return "".join(rows)
 
+# ================= 通用：24小时环形时钟图（顺时针渐入动效） =================
+def ring_clock_svg(hour_counts, size=140, label="划线"):
+    """hour_counts: {hour: count}; 生成带顺时针渐入动画的24小时环形时钟 SVG"""
+    import math
+    total = sum(hour_counts.values())
+    if not hour_counts or total == 0:
+        return ''
+    max_count = max(hour_counts.values())
+    cx = cy = size / 2
+    r = size * 0.36
+    stroke_w = size * 0.085
+    seg_angle = 360 / 24
+    arc_len = 2 * math.pi * r * seg_angle / 360
+    segments = []
+    for h in range(24):
+        count = hour_counts.get(h, 0)
+        start_a = -90 + h * seg_angle
+        end_a = start_a + seg_angle
+        x1 = cx + r * math.cos(math.radians(start_a))
+        y1 = cy + r * math.sin(math.radians(start_a))
+        x2 = cx + r * math.cos(math.radians(end_a))
+        y2 = cy + r * math.sin(math.radians(end_a))
+        if count == 0:
+            stroke, opacity = "#E6D4C0", "1"
+        else:
+            stroke, opacity = "#414969", f"{0.3 + 0.7 * (count / max_count):.2f}"
+        segments.append(
+            f'<path d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
+            f'fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{opacity}" '
+            f'stroke-dasharray="{arc_len:.1f}" stroke-dashoffset="{arc_len:.1f}" '
+            f'style="animation:wereadRingFill 0.4s ease-out {h * 15}ms forwards"/>')
+    fs = int(size * 0.17)
+    ss = int(size * 0.075)
+    return (f'<svg width="{size}" height="{size}" viewBox="0 0 {size} {size}" style="flex-shrink:0;display:block">'
+            f'{"".join(segments)}'
+            f'<text x="{cx}" y="{cy - 1}" text-anchor="middle" font-size="{fs}" font-weight="600" fill="#414969">{total}</text>'
+            f'<text x="{cx}" y="{cy + ss + 3}" text-anchor="middle" font-size="{ss}" fill="#B9A5A8">{label}</text>'
+            f'</svg>')
+
+
+def _hour_counts_in_range(day_start, day_end):
+    """统计 [day_start, day_end] 日期范围内各小时的划线条数"""
+    from collections import Counter
+    counts = Counter()
+    for bk in books:
+        for x in (bk.get("mark_items") or []):
+            t = x.get("t", 0)
+            if not t:
+                continue
+            dt = datetime.datetime.fromtimestamp(t, TZ)
+            if dt.year == YEAR and dt.month == MONTH and day_start <= dt.day <= day_end:
+                counts[dt.hour] += 1
+    return counts
+
+
 # ================= 天视图（今日时长 + 读书卡） =================
 def day_view():
     now = datetime.datetime.now(TZ).date()
     d = now.day if (now.year, now.month) == (YEAR, MONTH) else max(day_sec)
     mins = round(day_sec.get(d, 0) / 60)
     wdn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][datetime.date(YEAR, MONTH, d).weekday()]
-
-    # ---- 今日阅读时段分布（按今日划线 createTime 小时统计）----
-    from collections import Counter
-    hour_counts = Counter()
-    today_shorts = set(day_book_map.get(d, []))
-    for bk in books:
-        if bk["short"] not in today_shorts:
-            continue
-        for x in (bk.get("mark_items") or []):
-            t = x.get("t", 0)
-            if not t:
-                continue
-            dt = datetime.datetime.fromtimestamp(t, TZ)
-            if dt.year == YEAR and dt.month == MONTH and dt.day == d:
-                hour_counts[dt.hour] += 1
-    total_today_marks = sum(hour_counts.values())
-    if hour_counts:
-        max_h = max(hour_counts.values()) or 1
-        hbars = []
-        for h in sorted(hour_counts.keys()):
-            c = hour_counts[h]
-            pct = int(c / max_h * 100)
-            hbars.append(
-                f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
-                f'<div style="width:40px;font-size:11px;color:#7E748C;text-align:right;flex-shrink:0">{h:02d}:00</div>'
-                f'<div style="flex:1;height:10px;background:#E6D4C0;border-radius:5px;overflow:hidden">'
-                f'<div style="height:100%;width:{pct}%;background:linear-gradient(90deg,#414969,#5B6B85);border-radius:5px"></div></div>'
-                f'<div style="width:32px;font-size:11px;color:#414969;font-weight:600;text-align:right;flex-shrink:0">{c}</div></div>')
-        hour_card = (
-            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column">'
-            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日阅读时段</div>'
-            f'<div style="font-size:11px;color:#B9A5A8;margin-bottom:14px">共 {total_today_marks} 条划线</div>'
-            f'<div style="flex:1">{"".join(hbars)}</div></div>')
-    else:
-        hour_card = (
-            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center">'
-            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日阅读时段</div>'
-            f'<div style="font-size:12px;color:#B9A5A8;margin-top:8px">今日暂无划线记录</div></div>')
-
-    # ---- 今日在读进度（今天读了哪些书，当前进度）----
-    today_books_list = [bk for bk in books if bk["short"] in today_shorts]
-    if today_books_list:
-        pitems = []
-        for bk in today_books_list:
-            disp = bk.get("title") or bk["short"]
-            prog = bk.get("progress", 0)
-            finished = bk.get("finished", False)
-            cov = bk.get("cover", "")
-            status = ('<span style="background:#414969;color:#FAF6E9;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">读完</span>'
-                      if finished else
-                      '<span style="background:#E6D4C0;color:#414969;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">在读</span>')
-            pitems.append(
-                f'<div style="display:flex;gap:10px;margin-bottom:12px;align-items:flex-start">'
-                f'<div style="width:36px;height:50px;flex-shrink:0;background-image:url(\'{cov}\');background-size:cover;background-position:center;background-color:#E6D4C0;border-radius:5px"></div>'
-                f'<div style="flex:1;min-width:0">'
-                f'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">'
-                f'<div style="flex:1;min-width:0;font-size:12px;font-weight:600;color:#414969;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{disp}</div>'
-                f'{status}</div>'
-                f'<div style="display:flex;align-items:center;gap:6px">'
-                f'<div style="flex:1;height:6px;background:#E6D4C0;border-radius:3px;overflow:hidden">'
-                f'<div style="height:100%;width:{prog}%;background:linear-gradient(90deg,#414969,#5B6B85);border-radius:3px"></div></div>'
-                f'<div style="font-size:11px;color:#414969;font-weight:600;min-width:32px;text-align:right">{prog}%</div></div></div></div>')
-        progress_card = (
-            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column">'
-            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日在读</div>'
-            f'<div style="font-size:11px;color:#B9A5A8;margin-bottom:14px">共 {len(today_books_list)} 本</div>'
-            f'<div style="flex:1">{"".join(pitems)}</div></div>')
-    else:
-        progress_card = (
-            f'<div style="flex:1;min-width:260px;background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;display:flex;flex-direction:column;justify-content:center">'
-            f'<div style="font-size:14px;font-weight:600;color:#414969;margin-bottom:2px">今日在读</div>'
-            f'<div style="font-size:12px;color:#B9A5A8;margin-top:8px">今日暂无阅读记录</div></div>')
-
+    ring = ring_clock_svg(_hour_counts_in_range(d, d), size=120, label="今日划线")
+    ring_html = f'<div style="flex:0 0 auto;display:flex;align-items:center">{ring}</div>' if ring else ''
     return f'''
 <section id="v-day" class="view">
-<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
 <div><div style="font-size:12px;color:#7E748C">今日读书时长 · {MONTH} 月 {d} 日 {wdn}</div><div style="font-size:24px;font-weight:500;margin-top:6px">{mins} 分钟</div></div>
-</div>
-<div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:14px;align-items:stretch">
-{hour_card}
-{progress_card}
+{ring_html}
 </div>
 <div style="margin-bottom:14px">
 <div style="font-size:14px;font-weight:500;margin-bottom:12px">读书卡</div>
@@ -597,6 +595,7 @@ prefer_block = f'''<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;bor
 <div style="font-size:14px;font-weight:500;margin-bottom:10px">本月分类偏好</div><span style="background:#E6D4C0;color:#414969;padding:6px 14px;border-radius:20px;font-size:13px">{prefer}</span>{prefer_extra}</div>'''
 
 month_view = f'''
+<style>@keyframes wereadRingFill {{ to {{ stroke-dashoffset: 0; }} }}</style>
 <section id="v-month" class="view active">
 {summary_html()}
 {cover_gallery_html()}
@@ -684,10 +683,12 @@ body {{
 .view {{ display: none; }}
 .view.active {{ display: block; animation: fade .2s ease; }}
 @keyframes fade {{ from {{ opacity: 0; transform: translateY(4px); }} to {{ opacity: 1; transform: none; }} }}
+@keyframes wereadRingFill {{ to {{ stroke-dashoffset: 0; }} }}
 </style>
 </head>
 <body>
 <div class="container">
+<style>@keyframes wereadRingFill {{ to {{ stroke-dashoffset: 0; }} }}</style>
   <div class="header">
     <div class="brand"><b>微信读书</b> · {YEAR} 年 {MONTH} 月</div>
     <div class="seg">
