@@ -25,7 +25,7 @@ books = D.get("books", [])
 
 def norm(s):
     s = re.sub(r"[（(][^（）()]*[）)]", "", s)
-    s = s.split("：")[0]
+    s = re.split(r"[：:]", s)[0]
     s = re.sub(r"[\s:：,，。.!！?？·\-—『』「」]", "", s)
     return s
 
@@ -101,7 +101,7 @@ def build_mark_section(book, sync_date):
     return "\n".join(lines) + "\n\n" + END_MARK
 
 
-def new_note_frontmatter(title, author, cover, status):
+def new_note_frontmatter(title, author, cover, status, finish_date=""):
     return f"""---
 author: "{author}"
 publication_year:
@@ -115,7 +115,7 @@ status: {status}
 created: {datetime.date.today().isoformat()}
 source: "[[微信读书]]"
 start_date:
-finish_date:
+finish_date: {finish_date}
 rating:
 plan: ""
 taste_genre: ""
@@ -135,6 +135,13 @@ def set_status(content, status):
     return re.sub(r"(?m)^status:.*$", f"status: {status}", content, count=1)
 
 
+def set_finish_date(content, date):
+    """仅当 finish_date 为空时填充，已有值不覆盖（保留用户手动填写的读完日期）。"""
+    if re.search(r"(?m)^finish_date:\s*$", content):
+        return re.sub(r"(?m)^finish_date:\s*$", f"finish_date: {date}", content, count=1)
+    return content
+
+
 def main():
     sync_date = datetime.date.today().isoformat()
     report = []
@@ -148,7 +155,8 @@ def main():
         path = find_note(short, title)
         if path is None:
             path = os.path.join(SHELF, title + ".md")
-            content = new_note_frontmatter(title, b.get("author", ""), b.get("cover", ""), status) + sec + "\n"
+            finish_date = sync_date if b.get("finished") else ""
+            content = new_note_frontmatter(title, b.get("author", ""), b.get("cover", ""), status, finish_date) + sec + "\n"
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
             report.append(f"[新建] {title}.md -> {status} {prog}% 划线{n_marks}条")
@@ -168,6 +176,8 @@ def main():
         else:
             content = content.rstrip() + "\n\n" + sec + "\n"
         content = set_status(content, status)
+        if b.get("finished"):
+            content = set_finish_date(content, sync_date)
         with open(path, "w", encoding="utf-8") as f:
             f.write(content)
         report.append(f"[更新] {os.path.basename(path)} -> {status} {prog}% 划线{n_marks}条")

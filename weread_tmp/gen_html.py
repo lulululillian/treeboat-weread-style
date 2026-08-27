@@ -449,11 +449,75 @@ def day_view():
     d = now.day if (now.year, now.month) == (YEAR, MONTH) else max(day_sec)
     mins = round(day_sec.get(d, 0) / 60)
     wdn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][datetime.date(YEAR, MONTH, d).weekday()]
+
+    # ---- 今日阅读时段分布（按今日划线 createTime 小时统计）----
+    from collections import Counter
+    hour_counts = Counter()
+    today_shorts = set(day_book_map.get(d, []))
+    for bk in books:
+        if bk["short"] not in today_shorts:
+            continue
+        for x in (bk.get("mark_items") or []):
+            t = x.get("t", 0)
+            if not t:
+                continue
+            dt = datetime.datetime.fromtimestamp(t, TZ)
+            if dt.year == YEAR and dt.month == MONTH and dt.day == d:
+                hour_counts[dt.hour] += 1
+    if hour_counts:
+        max_h = max(hour_counts.values()) or 1
+        hbars = []
+        for h in sorted(hour_counts.keys()):
+            c = hour_counts[h]
+            pct = int(c / max_h * 100)
+            hbars.append(
+                f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
+                f'<div style="width:42px;font-size:11px;color:#7E748C;text-align:right;flex-shrink:0">{h:02d}:00</div>'
+                f'<div style="flex:1;height:8px;background:#E6D4C0;border-radius:4px;overflow:hidden">'
+                f'<div style="height:100%;width:{pct}%;background:#414969;border-radius:4px"></div></div>'
+                f'<div style="width:36px;font-size:11px;color:#414969;text-align:right;flex-shrink:0">{c} 条</div></div>')
+        hour_block = (
+            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;margin-bottom:14px">'
+            f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">今日阅读时段分布</div>'
+            f'{"".join(hbars)}</div>')
+    else:
+        hour_block = (
+            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 16px;margin-bottom:14px">'
+            f'<span style="font-size:12px;color:#B9A5A8">今日暂无划线记录</span></div>')
+
+    # ---- 今日在读进度（今天读了哪些书，当前进度）----
+    if today_shorts:
+        pbars = []
+        for bk in books:
+            if bk["short"] not in today_shorts:
+                continue
+            disp = bk.get("title") or bk["short"]
+            prog = bk.get("progress", 0)
+            finished = bk.get("finished", False)
+            status = '<span style="background:#414969;color:#FAF6E9;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">读完</span>' if finished else '<span style="background:#E6D4C0;color:#414969;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">在读</span>'
+            pbars.append(
+                f'<div style="margin-bottom:10px">'
+                f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">'
+                f'<div style="flex:1;min-width:0;font-size:13px;color:#414969;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{disp}</div>'
+                f'{status}<div style="font-size:11px;color:#414969;font-weight:500;min-width:36px;text-align:right">{prog}%</div></div>'
+                f'<div style="height:6px;background:#E6D4C0;border-radius:3px;overflow:hidden">'
+                f'<div style="height:100%;width:{prog}%;background:#414969;border-radius:3px"></div></div></div>')
+        progress_block = (
+            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;margin-bottom:14px">'
+            f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">今日在读进度</div>'
+            f'{"".join(pbars)}</div>')
+    else:
+        progress_block = (
+            f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 16px;margin-bottom:14px">'
+            f'<span style="font-size:12px;color:#B9A5A8">今日暂无阅读记录</span></div>')
+
     return f'''
 <section id="v-day" class="view">
 <div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
 <div><div style="font-size:12px;color:#7E748C">今日读书时长 · {MONTH} 月 {d} 日 {wdn}</div><div style="font-size:24px;font-weight:500;margin-top:6px">{mins} 分钟</div></div>
 </div>
+{hour_block}
+{progress_block}
 <div style="margin-bottom:14px">
 <div style="font-size:14px;font-weight:500;margin-bottom:12px">读书卡</div>
 {cards_html(day_range=(d, d), label="今日")}</div>
@@ -517,7 +581,7 @@ else:
 
 # 分类
 prefer_block = f'''<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;margin-bottom:14px">
-<div style="font-size:14px;font-weight:500;margin-bottom:10px">分类</div><span style="background:#E6D4C0;color:#414969;padding:6px 14px;border-radius:20px;font-size:13px">{prefer}</span>{prefer_extra}</div>'''
+<div style="font-size:14px;font-weight:500;margin-bottom:10px">本月分类偏好</div><span style="background:#E6D4C0;color:#414969;padding:6px 14px;border-radius:20px;font-size:13px">{prefer}</span>{prefer_extra}</div>'''
 
 month_view = f'''
 <section id="v-month" class="view active">

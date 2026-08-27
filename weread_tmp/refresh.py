@@ -14,33 +14,16 @@ if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 import config
 
-KEY_FILES = [os.path.expanduser("~/.bashrc"), os.path.expanduser("~/.profile")]
-GATEWAY = "https://i.weread.qq.com/api/agent/gateway"
-SKILL_VERSION = "1.0.4"
+GATEWAY = config.GATEWAY
+SKILL_VERSION = config.SKILL_VERSION
 KEEP = ["readTimes", "readDays", "readLongest", "preferCategory", "preferCategoryWord",
         "readStat", "registTime", "dayAverageReadTime", "baseTime", "totalReadTime",
         "readDistributionWord", "preferBooks", "readRecordsWord",
         "preferTime", "preferTimeWord", "compare", "preferAuthor", "preferPublisher", "preferCp"]
 
 
-def get_key():
-    k = os.environ.get("WEREAD_API_KEY")
-    if k:
-        return k
-    for f in KEY_FILES:
-        if os.path.exists(f):
-            try:
-                txt = open(f, encoding="utf-8", errors="ignore").read()
-            except Exception:
-                continue
-            m = re.search(r'WEREAD_API_KEY\s*=\s*["\']([^"\']+)["\']', txt)
-            if m:
-                return m.group(1)
-    return None
-
-
 def fetch_monthly():
-    key = get_key()
+    key = config.get_key()
     if not key:
         sys.exit("WEREAD_API_KEY 缺失：请在 ~/.bashrc 配置，或 export 后再运行")
     body = json.dumps({"api_name": "/readdata/detail", "mode": "monthly",

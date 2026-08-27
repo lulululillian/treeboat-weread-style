@@ -5,8 +5,10 @@ __pycache__/
 # 运行数据（个人阅读数据，勿提交）
 monthly.json
 monthly.json.bak
+monthly_*.json
 dash_data.json
 dash_data.json.bak
+dash_*.json
 bm_*.json
 notebooks.json
 ids.txt

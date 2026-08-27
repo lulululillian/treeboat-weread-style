@@ -10,37 +10,25 @@ prep_dash.py — 从微信读书接口实时计算阅读统计
 - 读完判定：markedStatus == 4（实测 readStat「读完N本」与 markedStatus=4 的书精确吻合）
 - 划线内容来自 /book/bookmarklist 的 updated[].markText，按 createTime 降序
 """
-import os, json, re, calendar, datetime, urllib.request
+import os, json, re, calendar, datetime, urllib.request, sys
 from datetime import timezone, timedelta
 
-TMP = os.path.dirname(os.path.abspath(__file__))
+_HERE = os.path.dirname(os.path.abspath(__file__))
+if _HERE not in sys.path:
+    sys.path.insert(0, _HERE)
+import config
+
+TMP = _HERE
 TZ = timezone(timedelta(hours=8))
-GATEWAY = "https://i.weread.qq.com/api/agent/gateway"
-SKILL_VERSION = "1.0.4"
-KEY_FILES = [os.path.expanduser("~/.bashrc"), os.path.expanduser("~/.profile")]
-
-
-def get_key():
-    k = os.environ.get("WEREAD_API_KEY")
-    if k:
-        return k
-    for f in KEY_FILES:
-        if os.path.exists(f):
-            try:
-                txt = open(f, encoding="utf-8", errors="ignore").read()
-            except Exception:
-                continue
-            m = re.search(r'WEREAD_API_KEY\s*=\s*["\']([^"\']+)["\']', txt)
-            if m:
-                return m.group(1)
-    return None
+GATEWAY = config.GATEWAY
+SKILL_VERSION = config.SKILL_VERSION
 
 
 def call(body):
     body = dict(body)
     body["skill_version"] = SKILL_VERSION
     req = urllib.request.Request(GATEWAY, data=json.dumps(body).encode(), method="POST")
-    req.add_header("Authorization", "Bearer " + get_key())
+    req.add_header("Authorization", "Bearer " + config.get_key())
     req.add_header("Content-Type", "application/json")
     return json.loads(urllib.request.urlopen(req, timeout=30).read())
 

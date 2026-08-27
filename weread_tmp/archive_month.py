@@ -16,35 +16,18 @@ from datetime import timezone, timedelta
 
 TMP = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(TMP)
-GATEWAY = "https://i.weread.qq.com/api/agent/gateway"
-SKILL_VERSION = "1.0.4"
+GATEWAY = config.GATEWAY
+SKILL_VERSION = config.SKILL_VERSION
 TZ = timezone(timedelta(hours=8))
 VAULT_DATA = config.data_dir()
-KEY_FILES = [os.path.expanduser("~/.bashrc"), os.path.expanduser("~/.profile")]
 KEEP = ["readTimes", "readDays", "readLongest", "preferCategory", "preferCategoryWord",
         "readStat", "registTime", "dayAverageReadTime", "baseTime", "totalReadTime",
         "readDistributionWord", "preferBooks", "readRecordsWord",
         "preferTime", "preferTimeWord", "compare", "preferAuthor", "preferPublisher", "preferCp"]
 
 
-def get_key():
-    k = os.environ.get("WEREAD_API_KEY")
-    if k:
-        return k
-    for f in KEY_FILES:
-        if os.path.exists(f):
-            try:
-                txt = open(f, encoding="utf-8", errors="ignore").read()
-            except Exception:
-                continue
-            m = __import__("re").search(r'WEREAD_API_KEY\s*=\s*["\']([^"\']+)["\']', txt)
-            if m:
-                return m.group(1)
-    return None
-
-
 def fetch_monthly_hist(y, m):
-    key = get_key()
+    key = config.get_key()
     if not key:
         sys.exit("WEREAD_API_KEY 缺失：请在 ~/.bashrc 配置，或 export 后再运行")
     ts = int(datetime.datetime(y, m, 15, tzinfo=TZ).timestamp())
@@ -82,6 +65,12 @@ def main():
     os.makedirs(VAULT_DATA, exist_ok=True)
     target = os.path.join(VAULT_DATA, f"{y:04d}-{m:02d}.json")
     shutil.copyfile(dfile, target)
+    # 清理临时文件（monthly_YYYYMM.json / dash_YYYYMM.json），避免个人数据残留
+    for tmp in (mfile, dfile):
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
     print("archived:", target, f"| 阅读日 {data.get('readDays')} | 总时长 {data.get('totalReadTime')}s")
 
 

@@ -6,6 +6,29 @@ API key 不在此文件出现：沿用环境变量 WEREAD_API_KEY + ~/.bashrc �
 """
 import json
 import os
+import re
+
+# 微信读书官方 Skill 网关接口（所有调用接口的脚本统一从这里取）
+GATEWAY = "https://i.weread.qq.com/api/agent/gateway"
+SKILL_VERSION = "1.0.4"
+KEY_FILES = [os.path.expanduser("~/.bashrc"), os.path.expanduser("~/.profile")]
+
+
+def get_key():
+    """读取 WEREAD_API_KEY：环境变量 → ~/.bashrc → ~/.profile 依次兜底。"""
+    k = os.environ.get("WEREAD_API_KEY")
+    if k:
+        return k
+    for f in KEY_FILES:
+        if os.path.exists(f):
+            try:
+                txt = open(f, encoding="utf-8", errors="ignore").read()
+            except Exception:
+                continue
+            m = re.search(r'WEREAD_API_KEY\s*=\s*["\']([^"\']+)["\']', txt)
+            if m:
+                return m.group(1)
+    return None
 
 _CFG = None
 
