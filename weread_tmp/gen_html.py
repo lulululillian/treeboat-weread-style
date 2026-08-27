@@ -120,6 +120,9 @@ books = [{
 } for b in books_raw]
 books.sort(key=lambda x: -x["sec"])
 
+# short（短名）→ title（全名，含冒号后副标题）映射，供周视图等以 short 为 key 的场景统一显示全名
+short_to_title = {b["short"]: (b.get("title") or b["short"]) for b in books}
+
 def fmt_min(m):
     if m >= 60:
         h = m // 60; mm = m % 60
@@ -383,8 +386,9 @@ def week_books_html(pairs):
     mx = pairs[0][1]
     bars = []
     for t, c in pairs[:6]:  # 同月视图：最多 6 本
+        disp = short_to_title.get(t, t)  # 统一显示全名（含冒号后副标题）
         pct = int(round(c / mx * 100)) if mx else 0
-        bars.append(f'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>{t}</span><span style="color:#7E748C">{c} 条</span></div><div style="height:8px;background:#E6D4C0;border-radius:4px;overflow:hidden"><div style="height:100%;width:{pct}%;background:#414969;border-radius:4px"></div></div></div>')
+        bars.append(f'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>{disp}</span><span style="color:#7E748C">{c} 条</span></div><div style="height:8px;background:#E6D4C0;border-radius:4px;overflow:hidden"><div style="height:100%;width:{pct}%;background:#414969;border-radius:4px"></div></div></div>')
     return "".join(bars)
 
 def week_daily_list_html(a, b):
