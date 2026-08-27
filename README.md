@@ -59,7 +59,7 @@ weread-readstats-template/
 
 ---
 
-## 零、从零开始：没有 Obsidian 库怎么建
+## 一、从零开始：没有 Obsidian 库怎么建
 
 如果你还没有 Obsidian 库，按下面三步建一个（只使用通用大分类，示例路径可自定义，但不建议再细拆）：
 
@@ -93,7 +93,7 @@ weread-readstats-template/
 
 ---
 
-## 一、配置步骤
+## 二、配置步骤
 
 ### 1. 获取 API key
 1. 打开手机**微信读书** App → 右下角「我的」→ 右上角「设置」→ 找到「微信读书 Skill」→ 进入后下拉找到「获取 API Key」，点击生成并复制。
@@ -132,7 +132,7 @@ weread-readstats-template/
 
 ---
 
-## 二·五、网页模式（不想用 Obsidian 也可以）
+## 三、网页模式（不想用 Obsidian 也可以）
 
 如果不想装 Obsidian，`output_mode` 设为 `html` 即可，看板输出为独立网页，浏览器双击打开：
 
@@ -148,7 +148,7 @@ weread-readstats-template/
 
 ---
 
-## 二、首次运行
+## 四、首次运行
 
 在项目目录（`weread_tmp` 的父目录）执行：
 
@@ -178,13 +178,23 @@ python weread_tmp/gen_monthly_summary.py 2026-07
 
 ---
 
-## 二·九、如何更新到新版本
+## 五、如何更新到新版本
 
-模板会持续更新（新功能 / 修复 / 优化），更新非常简单，**一条命令搞定**，你的配置和主题选择会自动保留。
+模板会持续更新（新功能 / 修复 / 优化），更新非常简单，**你的配置和主题选择会自动保留**。
 
-### 一键自动更新（推荐）
+### 方式一：让 AI 助手帮你更新（推荐，无需命令行）
 
-在项目目录（`weread_tmp` 的父目录）执行：
+大多数用户是通过 AI 智能体（如豆包等）来使用本模板的，更新也可以全程交给 AI，你只需要说一句话：
+
+1. 打开你的 AI 助手，把项目目录（`weread_tmp` 所在的文件夹）的路径发给它；
+2. 对 AI 说：「帮我更新树舟微信读书 Obsidian 阅读看板到最新版本，运行 weread_tmp/update.py，更新完成后再运行 refresh.py 刷新数据」；
+3. AI 会自动帮你完成：备份旧版本 → 从 GitHub 拉取最新脚本 → 保留你的 config.json 和 themes.json → 刷新数据。
+
+> 你的配置文件（库路径、API key 等）和主题选择不会被覆盖，更新后直接使用即可。
+
+### 方式二：命令行一键更新（备选）
+
+如果你熟悉命令行，也可以自己运行：
 
 ```bash
 python weread_tmp/update.py
@@ -204,7 +214,7 @@ python weread_tmp/refresh.py
 
 > 如果某些文件下载失败（可能是网络连接 GitHub 不稳定），重新运行 `python weread_tmp/update.py` 即可，已成功更新的文件不受影响。
 
-### 手动更新（备选）
+### 方式三：手动更新（备选）
 
 如果自动更新一直失败，也可以手动更新：
 1. 从 GitHub 下载最新的 `weread_tmp/` 里的 `.py` 文件；
@@ -213,7 +223,7 @@ python weread_tmp/refresh.py
 
 ---
 
-## 三、定时任务建议
+## 六、定时任务建议
 
 | 频率 | 命令 | 说明 |
 |---|---|---|
@@ -234,7 +244,7 @@ python weread_tmp/refresh.py
 
 ---
 
-## 四、常见问题
+## 七、常见问题
 
 **Q1：提示 `WEREAD_API_KEY 缺失`？**
 脚本找不到 key。检查：环境变量是否已 export 且新开终端生效；`~/.bashrc` 中是否有 `WEREAD_API_KEY="..."`（注意引号）；Windows 定时任务请用系统环境变量。
@@ -273,7 +283,7 @@ python weread_tmp/refresh.py
 
 ---
 
-## 隐私说明
+## 八、隐私说明
 - 模板不含任何用户的 API key、用户名或本地绝对路径。
 - API key 仅存于你自己的环境变量 / `~/.bashrc`，不会写入任何脚本或数据文件。
 - 分享前请确认 `config.json` 已替换为你朋友的库路径，且不要包含 `monthly.json`、`dash_data.json`、`bm_*.json`、`notebooks.json`、`ids.txt`、`err*.log`、`week-snapshots`、归档 `data/*.json` 等个人数据文件。
