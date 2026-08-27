@@ -198,26 +198,59 @@ def top5_html():
         bars.append(f'<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span>{b.get("title") or b["short"]}</span><span style="color:#7E748C">{b["min"]}m</span></div><div style="height:8px;background:#E6D4C0;border-radius:4px;overflow:hidden"><div style="height:100%;width:{pct}%;background:#414969;border-radius:4px"></div></div></div>')
     return "".join(bars)
 
-def cards_html():
+def cards_html(day_range=None, label="本月"):
+    """读书卡列表。
+    day_range=None：全量（月视图，显示本月阅读分钟、累计划线等）。
+    day_range=(a,b)：仅显示 [a,b] 日内有划线的书，划线/最近阅读均限定在该范围（周/日视图）。
+    """
+    rng = day_range
     cards = []
     for b in books:
-        s = b["short"]; disp = b.get("title") or s; prog = b.get("progress", 0); mk = len(b.get("marks", [])); mkm = b.get("month_marks", 0); ideas = b.get("ideas", 0)
+        s = b["short"]; disp = b.get("title") or s; prog = b.get("progress", 0)
         auth = b.get("author", ""); cov = b.get("cover", "")
-        last_str = ""
-        for x in (b.get("mark_items") or []):
-            if x.get("t"):
-                ldt = datetime.datetime.fromtimestamp(x["t"], TZ)
+        if rng:
+            a, bday = rng
+            # 范围内有划线才展示（book_mark_days 已按日归集）
+            if not any(a <= d <= bday for d in book_mark_days.get(s, [])):
+                continue
+            # 从 mark_items 过滤范围内划线（已按 createTime 降序）
+            range_items = []
+            for x in (b.get("mark_items") or []):
+                t = x.get("t")
+                if not t:
+                    continue
+                dt = datetime.datetime.fromtimestamp(t, TZ)
+                if dt.year == YEAR and dt.month == MONTH and a <= dt.day <= bday:
+                    range_items.append(x)
+            range_count = len(range_items)
+            quotes = [x.get("text", "") for x in range_items[:2]]
+            last_str = ""
+            if range_items:
+                ldt = datetime.datetime.fromtimestamp(range_items[0]["t"], TZ)
                 last_str = f'<div style="font-size:11px;color:#B9A5A8;white-space:nowrap;flex-shrink:0">最近阅读 {ldt.month}/{ldt.day}</div>'
-                break
-        quotes = month_recent_marks(b)
+            min_str = ""  # 范围模式无法按书拆分时长，不显示
+            bottom = f"{label}划线 {range_count} 条"
+            no_mark = f"{label}尚未记录划线"
+        else:
+            mk = len(b.get("marks", [])); mkm = b.get("month_marks", 0); ideas = b.get("ideas", 0)
+            last_str = ""
+            for x in (b.get("mark_items") or []):
+                if x.get("t"):
+                    ldt = datetime.datetime.fromtimestamp(x["t"], TZ)
+                    last_str = f'<div style="font-size:11px;color:#B9A5A8;white-space:nowrap;flex-shrink:0">最近阅读 {ldt.month}/{ldt.day}</div>'
+                    break
+            quotes = month_recent_marks(b)
+            min_str = f'<div style="font-size:11px;color:#7E748C;white-space:nowrap">本月阅读 {b.get("min", 0)} 分钟</div>'
+            idea_html = f' · 想法 {ideas} 条' if ideas else ''
+            bottom = f"本月划线 {mkm} 条 · 累计 {mk} 条{idea_html}"
+            no_mark = "本月尚未记录划线"
         status = ('<span style="background:#414969;color:#FAF6E9;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">读完</span>'
                   if b.get("finished")
                   else '<span style="background:#E6D4C0;color:#414969;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:500">在读</span>')
         if quotes:
             q_html = "".join(f'<div style="font-size:12px;color:#7E748C;line-height:1.6;padding:6px 10px;border-left:2px solid #414969;background:#FAF6E9;margin-bottom:6px;border-radius:0 4px 4px 0">“{esc(q)}”</div>' for q in quotes)
         else:
-            q_html = '<div style="font-size:12px;color:#B9A5A8;padding:6px 10px;border-left:2px solid #E6D4C0;background:#FAF6E9;margin-bottom:6px;border-radius:0 4px 4px 0">本月尚未记录划线</div>'
-        idea_html = f' · 想法 {ideas} 条' if ideas else ''
+            q_html = f'<div style="font-size:12px;color:#B9A5A8;padding:6px 10px;border-left:2px solid #E6D4C0;background:#FAF6E9;margin-bottom:6px;border-radius:0 4px 4px 0">{no_mark}</div>'
         cards.append(f'''<div style="border:0.5px solid #E6D4C0;border-radius:12px;padding:16px 18px;background:#FFFFFF;margin-bottom:12px">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
 <div style="font-size:10px;color:#7E748C;letter-spacing:1.5px">BOOK NOTE · 微信读书</div>
@@ -226,14 +259,16 @@ def cards_html():
 <div style="display:flex;gap:14px;margin-bottom:10px">
 <div style="width:56px;height:78px;flex-shrink:0;background-image:url('{cov}');background-size:cover;background-position:center;background-color:#E6D4C0;border-radius:6px"></div>
 <div style="flex:1;min-width:0">
-<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0;font-size:18px;font-weight:600;color:#414969;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{disp}</div>{status}<div style="font-size:11px;color:#7E748C;white-space:nowrap">本月阅读 {b.get('min', 0)} 分钟</div>{last_str}</div>
+<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;min-width:0;font-size:18px;font-weight:600;color:#414969;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{disp}</div>{status}{min_str}{last_str}</div>
 <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="flex:1;height:6px;background:#E6D4C0;border-radius:3px;overflow:hidden"><div style="height:100%;width:{prog}%;background:#414969;border-radius:3px"></div></div><div style="font-size:11px;color:#414969;font-weight:500;min-width:28px;text-align:right">{prog}%</div></div>
 <div style="font-size:11px;color:#B9A5A8">{auth}</div>
 </div>
 </div>
 {q_html}
-<div style="font-size:11px;color:#7E748C;margin-top:10px">本月划线 {mkm} 条 · 累计 {mk} 条{idea_html}</div>
+<div style="font-size:11px;color:#7E748C;margin-top:10px">{bottom}</div>
 </div>''')
+    if rng and not cards:
+        return f'<div style="font-size:12px;color:#B9A5A8;padding:6px 0">{label}暂无阅读记录</div>'
     return "".join(cards)
 
 def summary_html():
@@ -258,9 +293,11 @@ def cover_gallery_html():
         tstr = fmt_sec(b.get("sec", 0))
         cards.append(
             f'<div style="flex:0 0 auto;width:96px;text-align:center">'
+            f'<a href="{ob_uri(disp)}" style="text-decoration:none;display:block" title="打开笔记：{esc(disp)}">'
             f'<img src="{esc(cov)}" alt="{esc(disp)}" loading="lazy" '
             f'style="width:96px;height:128px;object-fit:cover;border-radius:10px;'
-            f'border:0.5px solid #E6D4C0;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08)"/>'
+            f'border:0.5px solid #E6D4C0;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08);cursor:pointer"/>'
+            f'</a>'
             f'<div style="font-size:11px;color:#414969;margin-top:6px;overflow:hidden;'
             f'text-overflow:ellipsis;white-space:nowrap;max-width:96px">{esc(disp)}</div>'
             f'<div style="font-size:10px;color:#7E748C;margin-top:2px">{tstr}</div>'
@@ -419,7 +456,7 @@ def day_view():
 </div>
 <div style="margin-bottom:14px">
 <div style="font-size:14px;font-weight:500;margin-bottom:12px">读书卡</div>
-{cards_html()}</div>
+{cards_html(day_range=(d, d), label="今日")}</div>
 </section>'''
 
 # ================= 组装 =================
@@ -517,7 +554,7 @@ week_view_html = f'''
 </div>
 <div style="margin-bottom:14px">
 <div style="font-size:14px;font-weight:500;margin-bottom:12px">读书卡</div>
-{cards_html()}</div>
+{cards_html(day_range=week_bounds(), label="本周")}</div>
 {prefer_block}
 </section>'''
 
