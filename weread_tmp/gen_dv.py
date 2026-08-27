@@ -179,6 +179,10 @@ const W = `%WEEK%`;
 const D = `%DAY%`;
 const root = dv.container.createEl('div');
 root.innerHTML = H + M + W + D;
+// 环形时钟波浪动效：全局注入 style，确保 Obsidian DataviewJS 环境下生效
+const _wrRingStyle = document.createElement('style');
+_wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-opacity:var(--wr-base,0.5);filter:brightness(1)}50%{stroke-opacity:1;filter:brightness(1.35)}}.wr-ring-svg:hover .wr-ring-seg{animation:wrRingWave 1.5s ease-in-out infinite!important;animation-delay:var(--wr-delay,0s)!important}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
+root.appendChild(_wrRingStyle);
 function act(v) {
   ['week','month','day'].forEach(function(x) {
     const sec = root.querySelector('#v-' + x);
