@@ -212,6 +212,18 @@ function act(v) {
     b.style.color = on ? '__MAIN__' : '__SUB__';
     b.style.fontWeight = on ? '600' : '400';
     b.style.boxShadow = on ? '0 1px 4px rgba(0,0,0,.08)' : 'none';
+    if (on) {
+      var ring = sec.querySelector('.wr-ring-svg');
+      if (ring) {
+        ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
+          var da = p.getAttribute('stroke-dasharray');
+          p.style.strokeDashoffset = da;
+          p.style.animation = 'none';
+          void p.offsetWidth;
+          p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
+        });
+      }
+    }
   });
 }
 root.querySelectorAll('button[data-view]').forEach(function(btn) {

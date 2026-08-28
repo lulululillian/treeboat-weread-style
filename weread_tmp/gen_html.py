@@ -267,8 +267,11 @@ def cards_html(day_range=None, label="本月"):
 {q_html}
 <div style="font-size:11px;color:#7E748C;margin-top:10px">{bottom}</div>
 </div>''')
-    if rng and not cards:
-        return f'<div style="font-size:12px;color:#B9A5A8;padding:6px 0">{label}暂无阅读记录</div>'
+    if not cards:
+        label_text = label if rng else "本月"
+        return (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;'
+                f'padding:32px 20px;text-align:center;color:#B9A5A8;font-size:14px;line-height:1.8">'
+                f'{label_text}暂无阅读记录<br><span style="font-size:12px;color:#D4C5C8">有阅读记录后将自动展示</span></div>')
     return "".join(cards)
 
 def summary_html():
@@ -462,12 +465,12 @@ def week_daily_list_html(a, b):
 
 # ================= 通用：24小时环形时钟图（顺时针渐入动效） =================
 def ring_clock_svg(hour_counts, size=140, label="划线"):
-    """hour_counts: {hour: count}; 生成带顺时针渐入+JS悬停波浪动效的24小时环形时钟 SVG"""
+    """hour_counts: {hour: count}; 生成带顺时针渐入+JS悬停波浪动效的24小时环形时钟 SVG（无数据时显示空状态）"""
     import math
     total = sum(hour_counts.values())
-    if not hour_counts or total == 0:
-        return ''
-    max_count = max(hour_counts.values())
+    if not hour_counts:
+        hour_counts = {}
+    max_count = max(hour_counts.values()) if hour_counts else 1
     cx = cy = size / 2
     r = size * 0.36
     stroke_w = size * 0.085
@@ -537,7 +540,8 @@ def day_view():
     mins = round(day_sec.get(d, 0) / 60)
     wdn = ["周一", "周二", "周三", "周四", "周五", "周六", "周日"][datetime.date(YEAR, MONTH, d).weekday()]
     ring = ring_clock_svg(_hour_counts_in_range(d, d), size=120, label="今日划线")
-    ring_html = f'<div style="flex:0 0 auto;display:flex;align-items:center">{ring}</div>' if ring else ''
+    ring_html = f'<div style="flex:0 0 auto;display:flex;align-items:center">{ring}</div>'
+    cards_area = cards_html(day_range=(d, d), label="今日")
     return f'''
 <section id="v-day" class="view">
 <div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
@@ -546,7 +550,7 @@ def day_view():
 </div>
 <div style="margin-bottom:14px">
 <div style="font-size:14px;font-weight:500;margin-bottom:12px">读书卡</div>
-{cards_html(day_range=(d, d), label="今日")}</div>
+{cards_area}</div>
 </section>'''
 
 # ================= 组装 =================
@@ -728,7 +732,18 @@ segs.forEach(btn => {{
     segs.forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     views.forEach(v => v.classList.remove('active'));
-    document.getElementById('v-' + btn.dataset.view).classList.add('active');
+    var target = document.getElementById('v-' + btn.dataset.view);
+    target.classList.add('active');
+    var ring = target.querySelector('.wr-ring-svg');
+    if (ring) {{
+      ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {{
+        var da = p.getAttribute('stroke-dasharray');
+        p.style.strokeDashoffset = da;
+        p.style.animation = 'none';
+        void p.offsetWidth;
+        p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
+      }});
+    }}
   }});
 }});
 // 环形时钟波浪动效：鼠标悬停某段时，以该段为中心向两侧扩散波浪
