@@ -119,7 +119,7 @@ RENDER_JS = r"""
       html += _card('每日阅读时长（分钟）', s, '柱子越高＝当天读得越久，悬停查看具体分钟数');
     }
 
-    // ---- 月度热力图 ----
+    // ---- 月度热力图 + 每周阅读习惯（左右并排，消除全宽留白） ----
     {
       const w1 = new Date(Y, M-1, 1).getDay(); // 0=周日
       const step=24, cell=21, labelW=20, titleH=26, wdH=16;
@@ -137,18 +137,17 @@ RENDER_JS = r"""
         s += '<text x="'+(x+4)+'" y="'+(y+cell/2+3)+'" font-size="8" fill="'+(m>0?'var(--wr-white)':'var(--wr-faint)')+'">'+d+'</text>';
       }
       s += '</svg>';
-      html += _card('本月阅读热力图', s, '颜色越深＝当天读得越久');
-    }
+      const heatCard = _card('本月阅读热力图', s, '颜色越深＝当天读得越久');
 
-    // ---- 周聚合（周一~周日习惯） ----
-    {
       const wk = [0,0,0,0,0,0,0];
-      for(let d=1;d<=ND;d++){ const wd = new Date(Y, M-1, d).getDay(); const idx = wd===0?6:wd-1; wk[idx] += day_sec[d]||0; }
+      for(let d=1;d<=ND;d++){ const wdd = new Date(Y, M-1, d).getDay(); const idx = wdd===0?6:wdd-1; wk[idx] += day_sec[d]||0; }
       const wnames = ['周一','周二','周三','周四','周五','周六','周日'];
       const wmx = Math.max.apply(null, wk) || 1;
       let inner = '';
       wnames.forEach(function(n,i){ inner += _bar(n, _fmtSec(wk[i]), Math.round(wk[i]/wmx*100), _fmtSec(wk[i])); });
-      html += _card('每周阅读习惯（按星期几累计）', inner, '看你更喜欢在工作日还是周末读书');
+      const weekCard = _card('每周阅读习惯（按星期几累计）', inner, '看你更喜欢在工作日还是周末读书');
+
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;align-items:stretch">' + heatCard + weekCard + '</div>';
     }
 
     // ---- 24h 时段（环形时钟 + 条形） ----
