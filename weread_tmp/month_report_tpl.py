@@ -174,8 +174,18 @@ RENDER_JS = r"""
       const smx = Math.max.apply(null, sums) || 1;
       let bars = '';
       labels.forEach(function(l,i){ bars += _bar(l, sums[i]+' 条', Math.round(sums[i]/smx*100), sums[i]+' 条'); });
-      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">'
-        + '<div style="background:var(--wr-white);border:0.5px solid var(--wr-line);border-radius:12px;padding:14px">'+ring+'</div>'
+      // 本月最佳划线（并入左列环形下方，填补空白）
+      const cands = [];
+      books.forEach(function(b){ (b.mark_items||[]).forEach(function(x){ if(x.t){ const dt=new Date(x.t*1000); if(dt.getFullYear()===Y && (dt.getMonth()+1)===M && x.text){ cands.push({t:x.t, txt:x.text, bk:b.title, ch:x.chapter||''}); } } }); });
+      cands.sort(function(a,b){ return b.t-a.t; });
+      let quoteInner = '';
+      if(cands.length){
+        cands.slice(0,5).forEach(function(c,i){ quoteInner += '<div style="margin-bottom:10px;padding-left:24px;position:relative"><div style="position:absolute;left:0;top:0;width:18px;height:18px;border-radius:50%;background:var(--wr-main);color:var(--wr-white);font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">'+(i+1)+'</div><div style="font-size:12px;color:var(--wr-main);line-height:1.6;background:var(--wr-bg);border-left:2px solid var(--wr-main);border-radius:0 6px 6px 0;padding:6px 10px">“'+_e(c.txt)+'”</div><div style="font-size:10px;color:var(--wr-faint);margin-top:4px">——《'+_e(c.bk)+'》'+(c.ch?' · '+_e(c.ch):'')+'</div></div>'; });
+      } else {
+        quoteInner = '<div style="font-size:11px;color:var(--wr-faint)">本月暂无划线</div>';
+      }
+      html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;align-items:start">'
+        + '<div style="background:var(--wr-white);border:0.5px solid var(--wr-line);border-radius:12px;padding:14px">'+ring+'<div style="font-size:12px;font-weight:500;margin:16px 0 8px;color:var(--wr-sub)">本月最佳划线</div>'+quoteInner+'</div>'
         + _card('24 小时划线时段分布', bars)
         + '</div>';
     }
@@ -233,18 +243,6 @@ RENDER_JS = r"""
         + '<div style="flex:1;background:var(--wr-bg);border-radius:10px;padding:10px;text-align:center"><div style="font-size:11px;color:var(--wr-sub)">在读</div><div style="font-size:22px;font-weight:600;color:var(--wr-main)">'+ing+'</div><div style="font-size:10px;color:var(--wr-faint)">'+(100-fp)+'%</div></div>'
         + '</div>'
         + '<div style="height:8px;background:var(--wr-line);border-radius:4px;overflow:hidden"><div style="height:100%;width:'+fp+'%;background:var(--wr-main);border-radius:4px"></div></div>');
-    }
-
-    // ---- 最佳划线 TOP5 ----
-    {
-      const cands = [];
-      books.forEach(function(b){ (b.mark_items||[]).forEach(function(x){ if(x.t){ const dt=new Date(x.t*1000); if(dt.getFullYear()===Y && (dt.getMonth()+1)===M && x.text){ cands.push({t:x.t, txt:x.text, bk:b.title, ch:x.chapter||''}); } } }); });
-      cands.sort(function(a,b){ return b.t-a.t; });
-      if(cands.length){
-        let inner = '';
-        cands.slice(0,5).forEach(function(c,i){ inner += '<div style="margin-bottom:10px;padding-left:24px;position:relative"><div style="position:absolute;left:0;top:0;width:18px;height:18px;border-radius:50%;background:var(--wr-main);color:var(--wr-white);font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">'+(i+1)+'</div><div style="font-size:12px;color:var(--wr-main);line-height:1.6;background:var(--wr-bg);border-left:2px solid var(--wr-main);border-radius:0 6px 6px 0;padding:6px 10px">“'+_e(c.txt)+'”</div><div style="font-size:10px;color:var(--wr-faint);margin-top:4px">——《'+_e(c.bk)+'》'+(c.ch?' · '+_e(c.ch):'')+'</div></div>'; });
-        html += _card('本月最佳划线', inner);
-      }
     }
 
     // ---- 读书卡 ----
