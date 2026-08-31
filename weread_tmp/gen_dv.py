@@ -123,20 +123,22 @@ def hist_links_html():
         y, mo = int(m.group(1)), int(m.group(2))
         if (y, mo) == (YEAR, MONTH):
             continue
-        note = os.path.join(OUT_DIR, f"阅读统计-{y:04d}-{mo:02d}.md")
+        note = os.path.join(OUT_DIR, f"{y}年{mo:02d}月阅读统计.md")
         uri = vault_uri(note)
         links.append(f'<a href="{uri}" style="text-decoration:none;background:{V["line"]};color:{V["main"]};'
-                     f'padding:3px 12px;border-radius:999px;font-size:11px;white-space:nowrap">{y}-{mo:02d}</a>')
+                     f'padding:3px 12px;border-radius:999px;font-size:11px;white-space:nowrap">{y}年{mo:02d}月</a>')
     if not links:
         return ""
     return ('<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 18px;font-size:11px;color:'
             + V["sub"] + '">历史月份 ' + "".join(links) + '</div>')
 
+overview_uri = vault_uri(os.path.join(OUT_DIR, "阅读统计.md"))
 header = ('<div style="display:flex;justify-content:space-between;align-items:center;'
           'margin-bottom:12px;flex-wrap:wrap;gap:12px">'
           '<div style="font-size:12px;color:' + V["sub"] + ';letter-spacing:2px">'
-          '<b style="font-weight:600;color:' + V["main"] + '">微信读书</b> · ' + str(YEAR) + ' 年 ' + str(MONTH) + ' 月</div>'
+          '<b style="font-weight:600;color:' + V["main"] + '">微信读书</b> · ' + str(YEAR) + ' 年 ' + str(MONTH) + ' 月 · 阅读统计</div>'
           '<div style="display:flex;align-items:center;gap:8px">'
+          '<a href="' + overview_uri + '" style="text-decoration:none;background:' + V["line"] + ';color:' + V["main"] + ';padding:6px 16px;border-radius:999px;font-size:12px">总览</a>'
           + theme_sel_html() +
           '<div style="display:inline-flex;background:' + V["line"] + ';border-radius:999px;padding:3px">'
           + btn("week", "周") + btn("month", "月", True) + btn("day", "天") +
@@ -285,7 +287,7 @@ js = (JS.replace("%HEADER%", header).replace("%MONTH%", month)
 now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 md = "```dataviewjs\n" + js + "\n```\n"
 
-OUT_MD = os.path.join(OUT_DIR, "阅读统计.md")
+OUT_MD = os.path.join(OUT_DIR, f"{MONTH}月阅读统计.md")
 OUT_HTML = os.path.join(OUT_DIR, "阅读统计.html")
 MODE = config.output_mode()
 
@@ -310,6 +312,100 @@ elif os.path.exists(OUT_HTML):
 print("written:", OUT_MD, f"({len(md)} chars)")
 print("removed:", OUT_HTML, "exists:", os.path.exists(OUT_HTML))
 
+# ---- 总视图：阅读统计.md（月份筛选 + 各月概览），供书架笔记回链 ----
+def _month_overview_data():
+    """收集当前月 + 全部历史归档月的概览数据（供总视图渲染）"""
+    months = []
+    # 当前月（gen_html.py 已加载并计算，命名空间 ns 内可直接取）
+    _cur_books = ns.get("books", [])
+    _cur_total = ns.get("total_sec", 0)
+    _cur_days = ns.get("read_days", 0)
+    cur = {
+        "y": YEAR, "m": MONTH, "file": f"{MONTH}月阅读统计.md", "cur": True,
+        "total": _cur_total, "days": _cur_days,
+        "books": len(_cur_books), "marks": sum(len(b.get("marks") or []) for b in _cur_books),
+    }
+    months.append(cur)
+    # 历史月（data/*.json）
+    if os.path.isdir(DATA_DIR):
+        for fp in sorted(glob.glob(os.path.join(DATA_DIR, "*.json"))):
+            base = os.path.basename(fp)
+            mm = re.match(r"^(\d{4})-(\d{2})\.json$", base)
+            if not mm:
+                continue
+            y, mo = int(mm.group(1)), int(mm.group(2))
+            if (y, mo) == (YEAR, MONTH):
+                continue
+            try:
+                with open(fp, encoding="utf-8") as _f:
+                    dd = json.load(_f)
+            except Exception:
+                continue
+            months.append({
+                "y": y, "m": mo, "file": f"{y}年{mo:02d}月阅读统计.md", "cur": False,
+                "total": dd.get("total_sec", 0), "days": dd.get("read_days", 0),
+                "books": len(dd.get("books", [])), "marks": sum(len(b.get("marks") or []) for b in dd.get("books", [])),
+            })
+    months.sort(key=lambda x: (-x["y"], -x["m"]))
+    return months
+
+def _fmt_overview(sec):
+    m = round(sec / 60)
+    if m >= 60:
+        h, mm = divmod(m, 60)
+        return f"{h}小时{mm:02d}分" if mm else f"{h}小时"
+    return f"{m}分钟"
+
+_overview_months = _month_overview_data()
+_ov_rows = []
+for _om in _overview_months:
+    _uri = vault_uri(os.path.join(OUT_DIR, _om["file"]))
+    _lbl = f'{_om["y"]}年{_om["m"]}月' + (" · 本月" if _om["cur"] else "")
+    _ov_rows.append({
+        "label": _lbl, "uri": _uri, "file": _om["file"],
+        "total": _fmt_overview(_om["total"]), "days": _om["days"],
+        "books": _om["books"], "marks": _om["marks"], "cur": _om["cur"],
+    })
+_OV_JS = json.dumps(_ov_rows, ensure_ascii=False)
+
+_ov_js = (SKIN_JS + "\n"
+          "const OV = __OV__;\n"
+          "const root = dv.container.createEl('div');\n"
+          "root.innerHTML = `<div style='font-size:18px;font-weight:600;color:var(--wr-main);margin:4px 0 2px'>微信读书 · 阅读统计总览</div>`;\n"
+          "root.innerHTML += `<div style='font-size:12px;color:var(--wr-sub);margin-bottom:14px'>按月份筛选查看历史阅读数据，点击月份卡片进入对应月统计</div>`;\n"
+          "if (!OV.length) {\n"
+          "  root.innerHTML += `<div style='color:var(--wr-faint);font-size:13px;padding:12px 0'>暂无数据，先运行刷新生成看板。</div>`;\n"
+          "} else {\n"
+          "  const sel = document.createElement('select');\n"
+          "  sel.style.cssText = 'background:var(--wr-white);border:1px solid var(--wr-line);color:var(--wr-main);border-radius:999px;padding:6px 14px;font-size:13px;font-family:inherit;cursor:pointer;outline:none;margin-bottom:14px';\n"
+          "  OV.forEach((o,i)=>{ const op=document.createElement('option'); op.value=String(i); op.textContent=o.label+(o.cur?'(当前)':''); sel.appendChild(op); });\n"
+          "  sel.addEventListener('change',()=>{ const o=OV[parseInt(sel.value)]; if(o&&o.file) app.workspace.openLinkText(o.file,'',false); });\n"
+          "  root.appendChild(sel);\n"
+          "  const grid = document.createElement('div');\n"
+          "  grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px';\n"
+          "  OV.forEach((o)=>{ const c=document.createElement('a'); c.href=o.uri; c.style.cssText='text-decoration:none;background:var(--wr-white);border:0.5px solid var(--wr-line);border-radius:12px;padding:14px 16px;display:block;transition:box-shadow .15s ease;cursor:pointer';\n"
+          "    c.onmouseover=()=>{c.style.boxShadow='0 4px 14px rgba(0,0,0,.08)'}; c.onmouseout=()=>{c.style.boxShadow='none'};\n"
+          "    c.addEventListener('click',(ev)=>{ ev.preventDefault(); app.workspace.openLinkText(o.file,'',false); });\n"
+          "    c.innerHTML = `<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:10px'><span style='font-size:14px;font-weight:600;color:var(--wr-main)'>${o.label}</span>${o.cur?`<span style='background:var(--wr-main);color:var(--wr-white);padding:2px 8px;border-radius:10px;font-size:10px'>本月</span>`:''}</div>`\n"
+          "      + `<div style='font-size:22px;font-weight:600;color:var(--wr-main)'>${o.total}</div>`\n"
+          "      + `<div style='font-size:11px;color:var(--wr-sub);margin-top:8px'>阅读 ${o.days} 天 · 书目 ${o.books} 本 · 划线 ${o.marks} 条</div>`;\n"
+          "    grid.appendChild(c);\n"
+          "  });\n"
+          "  root.appendChild(grid);\n"
+          "}\n"
+          "bindThemeSel(root);")
+_ov_js = (_ov_js.replace("__OV__", _OV_JS)
+                .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY))
+assert "`" not in _ov_js.split("const OV =")[0]  # SKIN_JS 与模板部分不含反引号
+_ov_md = "```dataviewjs\n" + _ov_js + "\n```\n"
+_ov_out = os.path.join(OUT_DIR, "阅读统计.md")
+with open(_ov_out, "w", encoding="utf-8") as f:
+    f.write(_ov_md)
+if strip_aigc_frontmatter(_ov_out):
+    print("aigc cleaned:", _ov_out)
+print("overview:", _ov_out, f"({len(_ov_md)} chars)")
+
+
 # ---- 历史月份快照：逐个 data\YYYY-MM.json 生成 阅读统计-YYYY-MM.md ----
 if os.path.isdir(DATA_DIR):
     hist_files = sorted(glob.glob(os.path.join(DATA_DIR, "*.json")))
@@ -329,16 +425,16 @@ if os.path.isdir(DATA_DIR):
         hy = hns.get("YEAR", y)
         hmo = hns.get("MONTH", mo)
         assert "`" not in hmonth and "${" not in hmonth
-        back_uri = vault_uri(os.path.join(OUT_DIR, "阅读统计.md"))
+        back_uri = vault_uri(os.path.join(OUT_DIR, "阅读统计.md"))  # 总览入口
         hheader = ('<div style="display:flex;justify-content:space-between;align-items:center;'
                    'margin-bottom:12px;flex-wrap:wrap;gap:12px">'
                    '<div style="font-size:12px;color:' + V["sub"] + ';letter-spacing:2px">'
                    '<b style="font-weight:600;color:' + V["main"] + '">微信读书</b> · '
-                   + str(hy) + ' 年 ' + str(hmo) + ' 月 · 历史快照</div>'
+                   + str(hy) + ' 年 ' + str(hmo) + ' 月 · 阅读统计</div>'
                    '<div style="display:flex;align-items:center;gap:8px">'
                    + theme_sel_html() +
                    '<a href="' + back_uri + '" style="text-decoration:none;background:' + V["line"] + ';color:'
-                   + V["main"] + ';padding:6px 16px;border-radius:999px;font-size:12px">返回当前月</a>'
+                   + V["main"] + ';padding:6px 16px;border-radius:999px;font-size:12px">返回总览</a>'
                    '</div></div>')
         assert "`" not in hheader and "${" not in hheader
         hjs = (SKIN_JS + "\n"
@@ -349,7 +445,7 @@ if os.path.isdir(DATA_DIR):
         hjs = (hjs.replace("%HEADER%", hheader).replace("%MONTH%", hmonth)
                    .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY))
         hmd = "```dataviewjs\n" + hjs + "\n```\n"
-        hout = os.path.join(OUT_DIR, f"阅读统计-{y:04d}-{mo:02d}.md")
+        hout = os.path.join(OUT_DIR, f"{y}年{mo:02d}月阅读统计.md")
         with open(hout, "w", encoding="utf-8") as f:
             f.write(hmd)
         if strip_aigc_frontmatter(hout):

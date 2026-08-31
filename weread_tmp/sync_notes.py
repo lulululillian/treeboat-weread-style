@@ -66,6 +66,7 @@ def build_mark_section(book, sync_date):
     n_marks = len(book.get("marks") or [])
     prog = book.get("progress", 0)
     lines = [SECTION, ""]
+    lines.append("> 🔙 返回阅读统计总览：[[阅读统计]]")
     lines.append(f"> 导出时间：{sync_date} ｜ 进度：{prog}% ｜ 划线：{n_marks} 条 ｜ 想法：{book.get('ideas', 0)} 条")
     lines.append("")
     read_info = f"> 本月阅读：{book.get('min', 0)} 分钟"
