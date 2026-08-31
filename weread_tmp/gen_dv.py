@@ -124,10 +124,10 @@ def hist_links_html():
         y, mo = int(m.group(1)), int(m.group(2))
         if (y, mo) == (YEAR, MONTH):
             continue
-        note = os.path.join(OUT_DIR, f"{y}年{mo:02d}月阅读统计.md")
+        note = os.path.join(OUT_DIR, f"{y}年{mo}月阅读统计.md")
         uri = vault_uri(note)
         links.append(f'<a href="{uri}" style="text-decoration:none;background:{V["line"]};color:{V["main"]};'
-                     f'padding:3px 12px;border-radius:999px;font-size:11px;white-space:nowrap">{y}年{mo:02d}月</a>')
+                     f'padding:3px 12px;border-radius:999px;font-size:11px;white-space:nowrap">{y}年{mo}月</a>')
     if not links:
         return ""
     return ('<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 18px;font-size:11px;color:'
@@ -339,7 +339,7 @@ js = (JS.replace("%HEADER%", header).replace("%MONTH%", month)
 now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 md = "```dataviewjs\n" + js + "\n```\n"
 
-OUT_MD = os.path.join(OUT_DIR, f"{YEAR}年{MONTH:02d}月阅读统计.md")
+OUT_MD = os.path.join(OUT_DIR, f"{YEAR}年{MONTH}月阅读统计.md")
 OUT_HTML = os.path.join(OUT_DIR, "阅读统计.html")
 MODE = config.output_mode()
 
@@ -373,7 +373,7 @@ def _month_overview_data():
     _cur_total = ns.get("total_sec", 0)
     _cur_days = ns.get("read_days", 0)
     cur = {
-        "y": YEAR, "m": MONTH, "file": f"{YEAR}年{MONTH:02d}月阅读统计.md", "cur": True,
+        "y": YEAR, "m": MONTH, "file": f"{YEAR}年{MONTH}月阅读统计.md", "cur": True,
         "total": _cur_total, "days": _cur_days,
         "books": len(_cur_books), "marks": sum(len(b.get("marks") or []) for b in _cur_books),
     }
@@ -394,7 +394,7 @@ def _month_overview_data():
             except Exception:
                 continue
             months.append({
-                "y": y, "m": mo, "file": f"{y}年{mo:02d}月阅读统计.md", "cur": False,
+                "y": y, "m": mo, "file": f"{y}年{mo}月阅读统计.md", "cur": False,
                 "total": dd.get("total_sec", 0), "days": dd.get("read_days", 0),
                 "books": len(dd.get("books", [])), "marks": sum(len(b.get("marks") or []) for b in dd.get("books", [])),
             })
@@ -499,7 +499,7 @@ if os.path.isdir(DATA_DIR):
         hjs = (hjs.replace("%HEADER%", hheader).replace("%MONTH%", hmonth)
                    .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY))
         hmd = "```dataviewjs\n" + hjs + "\n```\n"
-        hout = os.path.join(OUT_DIR, f"{y}年{mo:02d}月阅读统计.md")
+        hout = os.path.join(OUT_DIR, f"{y}年{mo}月阅读统计.md")
         with open(hout, "w", encoding="utf-8") as f:
             f.write(hmd)
         if strip_aigc_frontmatter(hout):
