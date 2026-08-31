@@ -180,13 +180,18 @@ RENDER_JS = r"""
       cands.sort(function(a,b){ return b.t-a.t; });
       let quoteInner = '';
       if(cands.length){
-        cands.slice(0,3).forEach(function(c,i){ quoteInner += '<div data-wr-quote style="margin-bottom:10px;padding-left:24px;position:relative"><div style="position:absolute;left:0;top:0;width:18px;height:18px;border-radius:50%;background:var(--wr-main);color:var(--wr-white);font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">'+(i+1)+'</div><div style="font-size:12px;color:var(--wr-main);line-height:1.6;background:var(--wr-bg);border-left:2px solid var(--wr-main);border-radius:0 6px 6px 0;padding:6px 10px">“'+_e(c.txt)+'”</div><div style="font-size:10px;color:var(--wr-faint);margin-top:4px">——《'+_e(c.bk)+'》'+(c.ch?' · '+_e(c.ch):'')+'</div></div>'; });
+        cands.slice(0,4).forEach(function(c,i){ quoteInner += '<div data-wr-quote style="margin-bottom:10px;padding-left:24px;position:relative"><div style="position:absolute;left:0;top:0;width:18px;height:18px;border-radius:50%;background:var(--wr-main);color:var(--wr-white);font-size:10px;display:flex;align-items:center;justify-content:center;font-weight:600">'+(i+1)+'</div><div style="font-size:12px;color:var(--wr-main);line-height:1.6;background:var(--wr-bg);border-left:2px solid var(--wr-main);border-radius:0 6px 6px 0;padding:6px 10px">“'+_e(c.txt)+'”</div><div style="font-size:10px;color:var(--wr-faint);margin-top:4px">——《'+_e(c.bk)+'》'+(c.ch?' · '+_e(c.ch):'')+'</div></div>'; });
       } else {
         quoteInner = '<div style="font-size:11px;color:var(--wr-faint)">本月暂无划线</div>';
       }
       html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;align-items:stretch">'
         + '<div data-wr-lcol style="background:var(--wr-white);border:0.5px solid var(--wr-line);border-radius:12px;padding:14px;min-width:0">'+ring+'<div style="font-size:12px;font-weight:500;margin:16px 0 8px;color:var(--wr-sub)">本月最佳划线</div>'+quoteInner+'</div>'
-        + '<div data-wr-rcol style="min-width:0">' + _card('24 小时划线时段分布', bars) + '</div>'
+        + '<div data-wr-rcol style="min-width:0;display:flex;flex-direction:column">'
+          + '<div style="background:var(--wr-white);border:0.5px solid var(--wr-line);border-radius:12px;padding:14px 14px 18px;flex:1;display:flex;flex-direction:column">'
+            + '<div style="font-size:14px;font-weight:500;margin-bottom:6px;color:var(--wr-main)">24 小时划线时段分布</div>'
+            + '<div style="flex:1;display:flex;flex-direction:column;justify-content:space-between">' + bars + '</div>'
+          + '</div>'
+        + '</div>'
         + '</div>';
     }
 
@@ -267,27 +272,6 @@ RENDER_JS = r"""
 
     root.innerHTML = html;
     bindThemeSel(root);
-    // 左右等高：左列划线实测，超高则从底部移除；多次尝试 + 未布局估算兜底
-    try {
-      const lc = root.querySelector('[data-wr-lcol]');
-      const rc = root.querySelector('[data-wr-rcol]');
-      if (lc && rc) {
-        const trim = function(){
-          let maxH = rc.offsetHeight;
-          if (!maxH) { maxH = 12 * 30 + 34 + 28; } // 容器未布局时的保守估算
-          if (lc.offsetHeight > maxH) {
-            const qs = Array.prototype.slice.call(lc.querySelectorAll('[data-wr-quote]'));
-            for (let i = qs.length - 1; i >= 0; i--) {
-              if (lc.offsetHeight <= maxH) break;
-              if (qs[i] && qs[i].parentNode) qs[i].parentNode.removeChild(qs[i]);
-            }
-          }
-        };
-        requestAnimationFrame(trim);
-        setTimeout(trim, 150);
-        setTimeout(trim, 500);
-      }
-    } catch (e) {}
   }
   main();
 })();
