@@ -339,7 +339,7 @@ js = (JS.replace("%HEADER%", header).replace("%MONTH%", month)
 now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 md = "```dataviewjs\n" + js + "\n```\n"
 
-OUT_MD = os.path.join(OUT_DIR, f"{MONTH}月阅读统计.md")
+OUT_MD = os.path.join(OUT_DIR, f"{YEAR}年{MONTH:02d}月阅读统计.md")
 OUT_HTML = os.path.join(OUT_DIR, "阅读统计.html")
 MODE = config.output_mode()
 
@@ -373,7 +373,7 @@ def _month_overview_data():
     _cur_total = ns.get("total_sec", 0)
     _cur_days = ns.get("read_days", 0)
     cur = {
-        "y": YEAR, "m": MONTH, "file": f"{MONTH}月阅读统计.md", "cur": True,
+        "y": YEAR, "m": MONTH, "file": f"{YEAR}年{MONTH:02d}月阅读统计.md", "cur": True,
         "total": _cur_total, "days": _cur_days,
         "books": len(_cur_books), "marks": sum(len(b.get("marks") or []) for b in _cur_books),
     }
