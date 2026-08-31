@@ -149,6 +149,22 @@ def build(y, mo):
     return "\n".join(lines)
 
 
+def _hex2rgb(h):
+    h = h.lstrip("#")
+    return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+
+
+def _lerp(a, b, t):
+    return "#%02x%02x%02x" % tuple(int(a[i] + (b[i] - a[i]) * t) for i in range(3))
+
+
+def _heat_for(pal):
+    """热力色阶 5 档（与 gen_dv.py 一致）：heat-0=bg，heat-1..4 为 line→main 渐进"""
+    light = _hex2rgb(pal["line"])
+    dark = _hex2rgb(pal["main"])
+    return [pal["bg"]] + [_lerp(light, dark, t) for t in (0.2, 0.45, 0.7, 1.0)]
+
+
 def _themes_js():
     """从 themes.json 构造前端换肤数据（与 gen_dv.py 一致）"""
     tp = os.path.join(_HERE, "themes.json")
@@ -157,7 +173,8 @@ def _themes_js():
     items = []
     for k, t in td["themes"].items():
         items.append(json.dumps(k, ensure_ascii=False) + ': {"name": ' + json.dumps(t.get("name", k), ensure_ascii=False)
-                     + ', "palette": ' + json.dumps(t["palette"], ensure_ascii=False) + '}')
+                     + ', "palette": ' + json.dumps(t["palette"], ensure_ascii=False)
+                     + ', "heat": ' + json.dumps(_heat_for(t["palette"]), ensure_ascii=False) + '}')
     return "{" + ", ".join(items) + "}", (td.get("current") or list(td["themes"].keys())[0])
 
 
