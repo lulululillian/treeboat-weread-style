@@ -142,17 +142,17 @@ def _report_btn(y, mo, cur=False):
             'white-space:nowrap;transition:all .15s ease">📊 月报</button>')
 
 def _report_click_js():
-    """月报按钮点击逻辑：写入 阅读月报-YYYY-MM.md（模板内嵌，数据由模板运行时读取）"""
-    tpl = _mrp.build_report_js(YEAR, MONTH, THEMES_JS, _CUR_KEY)
+    """月报按钮点击逻辑：写入 阅读月报-YYYY-MM.md（模板内嵌，数据由模板运行时读取）
+    注意：data_ym 传 '__YM__' 占位符，让模板里 dataPath 保留 __YM__，
+    点击按钮时才替换成目标月份——否则会写死为生成页面时的当前月，历史月按钮读错数据。"""
+    tpl = _mrp.build_report_js(YEAR, MONTH, THEMES_JS, _CUR_KEY, data_ym="__YM__")
     tpl_json = json.dumps(tpl, ensure_ascii=False)
     return _REPORT_CLICK_JS.replace('__REPORT_TPL_JSON__', tpl_json)
 
 _REPORT_CLICK_JS = (
     "\n"
-    "    // 月报生成（事件委托，防止重渲染丢失）\n"
-    "    if (!window.__wr_report_bound) {\n"
-    "      window.__wr_report_bound = true;\n"
-    "      document.addEventListener('click', async function(e) {\n"
+    "    // 月报生成（绑定页面 root，避免 document 全局监听被旧页面抢占）\n"
+    "    root.addEventListener('click', async function(e) {\n"
     "        const btn = e.target.closest('button[data-wr-report]');\n"
     "        if (!btn) return;\n"
     "        const ym = btn.getAttribute('data-wr-report');\n"
@@ -178,7 +178,6 @@ _REPORT_CLICK_JS = (
     "          console.error('wr report gen failed', err);\n"
     "        }\n"
     "      });\n"
-    "    }\n"
 )
 
 overview_uri = vault_uri(os.path.join(OUT_DIR, "阅读统计.md"))
