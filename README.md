@@ -227,10 +227,12 @@ python weread_tmp/refresh.py
 # 生成指定历史月份的归档（如 2026-07）
 python weread_tmp/archive_month.py 2026-07
 
-# 生成月度总结（默认上月，可在每月 1 号定时执行）
+# 命令行生成月度总结（默认上月，可在每月 1 号定时执行；与下方按钮产物一致）
 python weread_tmp/gen_monthly_summary.py
 python weread_tmp/gen_monthly_summary.py 2026-07
 ```
+
+**生成阅读月报（推荐，Obsidian 内一键）**：打开任意月份的阅读统计页（如 `8月阅读统计.md` 或 `2026年07月阅读统计.md`），点击右上角 **📊 月报** 按钮，会自动在同目录生成 `阅读月报-YYYY-MM.md` 并打开。月报数据图非常丰富（每日时长柱状图、月度热力图、每周习惯、24 小时时段环形、各书时长占比、阅读排行、划线排行、阅读状态、最佳划线、读书卡等），比单月统计视图的图更多。
 
 ---
 

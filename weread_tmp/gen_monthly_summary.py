@@ -1,15 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-gen_monthly_summary.py — 生成微信读书月度总结（Obsidian md）
+gen_monthly_summary.py — 生成微信读书阅读月报（Obsidian dataviewjs 版，数据图丰富）
 用法: python gen_monthly_summary.py [YYYY-MM]
   - 不带参数：默认上月（供每月 1 号定时任务使用）
-  - 数据源：vault 阅读统计\data\YYYY-MM.json（refresh 自动归档 / archive_month.py 补生成）
+  - 数据源：vault 阅读统计/data/YYYY-MM.json（refresh 自动归档 / archive_month.py 补生成）
+  - 与 Obsidian 内「生成月报」按钮共用同一模板 month_report_tpl.py
 """
 import os, sys, json, datetime
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 import config
+import month_report_tpl as _mrp
 from datetime import timezone, timedelta
 
 TZ = timezone(timedelta(hours=8))
@@ -31,6 +33,14 @@ def load(y, mo):
     with open(fp, encoding="utf-8") as f:
         return json.load(f)
 
+
+
+def ensure_data(y, mo):
+    """确保该月归档数据存在（模板运行时也需要它）"""
+    fp = os.path.join(DATA_DIR, f"{y:04d}-{mo:02d}.json")
+    if not os.path.exists(fp):
+        sys.exit(f"未找到归档数据 {fp}，请先运行 archive_month.py {y:04d}-{mo:02d} 补生成")
+    return fp
 
 def build(y, mo):
     D = load(y, mo)
@@ -139,15 +149,28 @@ def build(y, mo):
     return "\n".join(lines)
 
 
+def _themes_js():
+    """从 themes.json 构造前端换肤数据（与 gen_dv.py 一致）"""
+    tp = os.path.join(_HERE, "themes.json")
+    with open(tp, encoding="utf-8") as f:
+        td = json.load(f)
+    items = []
+    for k, t in td["themes"].items():
+        items.append(json.dumps(k, ensure_ascii=False) + ': {"name": ' + json.dumps(t.get("name", k), ensure_ascii=False)
+                     + ', "palette": ' + json.dumps(t["palette"], ensure_ascii=False) + '}')
+    return "{" + ", ".join(items) + "}", (td.get("current") or list(td["themes"].keys())[0])
+
+
 def main():
     if len(sys.argv) >= 2:
         y, mo = map(int, sys.argv[1].split("-"))
     else:
         now = datetime.datetime.now(TZ)
-        # 上月：当月 1 号往前推 1 天即上月末
         prev = now.replace(day=1) - timedelta(days=1)
         y, mo = prev.year, prev.month
-    md = build(y, mo)
+    ensure_data(y, mo)
+    themes_js, cur = _themes_js()
+    md = _mrp.build_report_md(y, mo, themes_js, cur)
     out = os.path.join(OUT_DIR, f"阅读月报-{y:04d}-{mo:02d}.md")
     with open(out, "w", encoding="utf-8") as f:
         f.write(md)

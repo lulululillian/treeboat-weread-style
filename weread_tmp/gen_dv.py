@@ -8,6 +8,7 @@ _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
     sys.path.insert(0, _HERE)
 import config
+import month_report_tpl as _mrp
 
 VAULT = config.vault_name()
 VAULT_ROOT = config.vault_root()
@@ -132,6 +133,54 @@ def hist_links_html():
     return ('<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 18px;font-size:11px;color:'
             + V["sub"] + '">历史月份 ' + "".join(links) + '</div>')
 
+
+# ---- 生成月报按钮（点击写入同路径 阅读月报-YYYY-MM.md） ----
+def _report_btn(y, mo, cur=False):
+    return ('<button data-wr-report="' + str(y) + '-' + str(mo) + '" title="生成本月阅读月报（同目录）" '
+            'style="border:1px solid ' + V["line"] + ';background:' + V["white"] + ';color:' + V["main"]
+            + ';padding:6px 14px;border-radius:999px;cursor:pointer;font-size:12px;font-family:inherit;'
+            'white-space:nowrap;transition:all .15s ease">📊 月报</button>')
+
+def _report_click_js():
+    """月报按钮点击逻辑：写入 阅读月报-YYYY-MM.md（模板内嵌，数据由模板运行时读取）"""
+    tpl = _mrp.build_report_js(YEAR, MONTH, THEMES_JS, _CUR_KEY)
+    tpl_json = json.dumps(tpl, ensure_ascii=False)
+    return _REPORT_CLICK_JS.replace('__REPORT_TPL_JSON__', tpl_json)
+
+_REPORT_CLICK_JS = (
+    "\n"
+    "    // 月报生成（事件委托，防止重渲染丢失）\n"
+    "    if (!window.__wr_report_bound) {\n"
+    "      window.__wr_report_bound = true;\n"
+    "      document.addEventListener('click', async function(e) {\n"
+    "        const btn = e.target.closest('button[data-wr-report]');\n"
+    "        if (!btn) return;\n"
+    "        const ym = btn.getAttribute('data-wr-report');\n"
+    "        const parts = ym.split('-');\n"
+    "        const y = parts[0], m = parts[1];\n"
+    "        e.preventDefault();\n"
+    "        try {\n"
+    "          const tpl = __REPORT_TPL_JSON__;\n"
+    "          const ym2 = String(y) + '-' + String(m).padStart(2, '0');\n"
+    "          const content = tpl.replace(/__YM__/g, ym2)\n"
+    "                             .replace(/__YEAR__/g, String(y))\n"
+    "                             .replace(/__MONTH__/g, String(m));\n"
+    "          const cur = dv.current().file.path || '';\n"
+    "          const dir = cur.indexOf('/') >= 0 ? cur.substring(0, cur.lastIndexOf('/')) : '';\n"
+    "          const fname = '阅读月报-' + ym2 + '.md';\n"
+    "          const outPath = dir ? dir + '/' + fname : fname;\n"
+    "          const BT = String.fromCharCode(96);\n"
+    "          await app.vault.adapter.write(outPath, BT + BT + BT + 'dataviewjs\\n' + content + '\\n' + BT + BT + BT);\n"
+    "          if (typeof app.workspace !== 'undefined') {\n"
+    "            app.workspace.openLinkText(fname, '');\n"
+    "          }\n"
+    "        } catch (err) {\n"
+    "          console.error('wr report gen failed', err);\n"
+    "        }\n"
+    "      });\n"
+    "    }\n"
+)
+
 overview_uri = vault_uri(os.path.join(OUT_DIR, "阅读统计.md"))
 header = ('<div style="display:flex;justify-content:space-between;align-items:center;'
           'margin-bottom:12px;flex-wrap:wrap;gap:12px">'
@@ -139,6 +188,7 @@ header = ('<div style="display:flex;justify-content:space-between;align-items:ce
           '<b style="font-weight:600;color:' + V["main"] + '">微信读书</b> · ' + str(YEAR) + ' 年 ' + str(MONTH) + ' 月 · 阅读统计</div>'
           '<div style="display:flex;align-items:center;gap:8px">'
           '<a href="' + overview_uri + '" style="text-decoration:none;background:' + V["line"] + ';color:' + V["main"] + ';padding:6px 16px;border-radius:999px;font-size:12px">总览</a>'
+          + _report_btn(YEAR, MONTH, True)
           + theme_sel_html() +
           '<div style="display:inline-flex;background:' + V["line"] + ';border-radius:999px;padding:3px">'
           + btn("week", "周") + btn("month", "月", True) + btn("day", "天") +
@@ -232,6 +282,7 @@ root.querySelectorAll('button[data-view]').forEach(function(btn) {
   btn.addEventListener('click', function() { act(btn.getAttribute('data-view')); });
 });
 act('month');
+_report_click_js()
 bindThemeSel(root);
 (function(){
   const g = root.querySelector('#wr-cover-gallery');
@@ -282,7 +333,8 @@ JS = SKIN_JS + "\n" + JS
 js = (JS.replace("%HEADER%", header).replace("%MONTH%", month)
         .replace("%WEEK%", week).replace("%DAY%", day)
         .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY)
-        .replace("__W__", V["white"]).replace("__MAIN__", V["main"]).replace("__SUB__", V["sub"]))
+        .replace("__W__", V["white"]).replace("__MAIN__", V["main"]).replace("__SUB__", V["sub"])
+        .replace("_report_click_js()", _report_click_js()))
 
 now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 md = "```dataviewjs\n" + js + "\n```\n"
@@ -432,6 +484,7 @@ if os.path.isdir(DATA_DIR):
                    '<b style="font-weight:600;color:' + V["main"] + '">微信读书</b> · '
                    + str(hy) + ' 年 ' + str(hmo) + ' 月 · 阅读统计</div>'
                    '<div style="display:flex;align-items:center;gap:8px">'
+                   + _report_btn(hy, hmo, False)
                    + theme_sel_html() +
                    '<a href="' + back_uri + '" style="text-decoration:none;background:' + V["line"] + ';color:'
                    + V["main"] + ';padding:6px 16px;border-radius:999px;font-size:12px">返回总览</a>'
@@ -441,6 +494,7 @@ if os.path.isdir(DATA_DIR):
                "const H = `%HEADER%`;\nconst M = `%MONTH%`;\n"
                "const root = dv.container.createEl('div');\n"
                "root.innerHTML = H + M;\n"
+               + _report_click_js() + "\n"
                "bindThemeSel(root);")
         hjs = (hjs.replace("%HEADER%", hheader).replace("%MONTH%", hmonth)
                    .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY))
