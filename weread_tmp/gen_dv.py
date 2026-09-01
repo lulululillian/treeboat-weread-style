@@ -29,20 +29,23 @@ _AIGC_KEYS = ("AIGC", "ContentProducer", "ProduceID", "ReservedCode")
 
 
 def _month_links_comment(books):
-    """生成本月在读关联书籍的 Obsidian 注释（%%..%%）。
+    """生成本月在读关联书籍的隐藏反向链接。
 
-    注释内 [[书名]] 会被 Obsidian 索引为反向链接（书页显示该月统计来源，实现双向跳转），
-    而注释本身不显示在页面上。书名含 wiki 链接特殊字符（| # ^ [ ]）时跳过。
+    用 <span style="display:none">[[书名]]</span> 形式写在 md 源文本中：
+    Obsidian 会把 span 标签之间的 [[书名]] 解析为真实内部链接并索引（书页显示该月统计来源，
+    实现双向跳转），而 display:none 让页面不显示。注意不能用 %%注释%%——注释内容不会
+    被 Obsidian 索引为链接。书名含 wiki 链接/HTML 特殊字符（| # ^ [ ] < > &）时跳过。
     """
     titles = []
     for _b in (books or []):
         _t = (_b.get("title") or _b.get("short") or "").strip()
-        if not _t or any(_c in _t for _c in "|#^[]"):
+        if not _t or any(_c in _t for _c in "|#^[]<>&"):
             continue
         titles.append(_t)
     if not titles:
         return ""
-    return "\n%% 本月在读关联：" + "、".join("[[" + _t + "]]" for _t in titles) + " %%\n"
+    return "\n<span style=\"display:none\">本月在读关联：" + \
+           "、".join("[[" + _t + "]]" for _t in titles) + "</span>\n"
 
 
 def strip_aigc_frontmatter(path):
