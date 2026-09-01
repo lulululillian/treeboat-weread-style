@@ -106,12 +106,12 @@ weread-readstats-template/
     ├── gen_html.py              # 周/月/天三视图渲染组件（主题/画廊/换肤/环形时钟）
     ├── gen_dv.py                # 生成 Obsidian DataviewJS 版阅读统计.md
     ├── sync_notes.py            # 同步实时进度/划线回写「我的书架」笔记
-    ├── archive_month.py         # 归档指定历史月份（生成 data/YYYY-MM.json）
+    ├── archive_month.py         # 归档指定历史月份（生成 .data/YYYY-MM.json，点开头文件夹 Obsidian 自动隐藏）
     ├── gen_monthly_summary.py   # 生成月度总结（阅读月报）
     └── themes.json              # 7 套主题配色存档（含当前主题）
 ```
 
-> 运行后会生成 `monthly.json`、`dash_data.json`、`data/` 归档等数据文件（自动创建，可随时删除重建）。
+> 运行后会生成 `monthly.json`、`dash_data.json`、`.data/` 归档等数据文件（点开头，Obsidian 自动隐藏，不显示在文件列表）（自动创建，可随时删除重建）。
 
 ---
 
@@ -215,7 +215,7 @@ python weread_tmp/refresh.py
 `refresh.py` 会自动完成：
 1. 调用微信读书接口拉取本月阅读数据 → 写 `monthly.json`；
 2. 运行 `prep_dash.py` 计算 `dash_data.json`；
-3. 归档当月数据到 `vault/data/YYYY-MM.json`，并更新本周快照；
+3. 归档当月数据到 `vault/.data/YYYY-MM.json`，并更新本周快照；
 4. 运行 `sync_notes.py` 同步书架笔记；
 5. 按 `output_mode` 生成总览页 `阅读统计.md`（Obsidian 版，含各月概览与月份筛选）+ 各月 `YYYY年M月阅读统计.md`，和/或 `阅读统计.html`（网页版）；
 6. 生成后自动检查并清除外部同步服务注入的 AIGC frontmatter（有则删除，控制台打印 `aigc cleaned: ...`）。
@@ -320,7 +320,7 @@ python weread_tmp/refresh.py
 确认已启用 Dataview 插件且开启了 JavaScript 渲染；确认 `阅读统计.md` 在库内；打开开发者控制台看是否有 JS 报错。
 
 **Q4：历史月份入口没有出现？**
-需要每月数据归档。`refresh.py` 会自动归档当月；补历史月用 `archive_month.py 2026-07`。归档文件在 `vault/data/YYYY-MM.json`。打开总览页 `阅读统计.md`，顶部会列出所有已归档月份的下拉与概览卡片，点击即可进入对应月统计（历史月文件名如 `2026年07月阅读统计.md`）。
+需要每月数据归档。`refresh.py` 会自动归档当月；补历史月用 `archive_month.py 2026-07`。归档文件在 `vault/.data/YYYY-MM.json`。打开总览页 `阅读统计.md`，顶部会列出所有已归档月份的下拉与概览卡片，点击即可进入对应月统计（历史月文件名如 `2026年07月阅读统计.md`）。
 
 **Q5：「较上周日均」一直显示数据不足？**
 周环比需要至少运行过上一周。连续每日刷新后会自动出现。
@@ -350,4 +350,4 @@ python weread_tmp/refresh.py
 ## 八、隐私说明
 - 模板不含任何用户的 API key、用户名或本地绝对路径。
 - API key 仅存于你自己的环境变量 / `~/.bashrc`，不会写入任何脚本或数据文件。
-- 分享前请确认 `config.json` 已替换为你朋友的库路径，且不要包含 `monthly.json`、`dash_data.json`、`bm_*.json`、`notebooks.json`、`ids.txt`、`err*.log`、`week-snapshots`、归档 `data/*.json` 等个人数据文件。
+- 分享前请确认 `config.json` 已替换为你朋友的库路径，且不要包含 `monthly.json`、`dash_data.json`、`bm_*.json`、`notebooks.json`、`ids.txt`、`err*.log`、`week-snapshots`、归档 `.data/*.json` 等个人数据文件。
