@@ -61,7 +61,7 @@ def find_note(short, title=None):
     return None
 
 
-def build_mark_section(book, sync_date):
+def build_mark_section(book, sync_date, months):
     items = book.get("mark_items") or []
     n_marks = len(book.get("marks") or [])
     prog = book.get("progress", 0)
@@ -77,6 +77,8 @@ def build_mark_section(book, sync_date):
     if profile != "—":
         read_info += f" ｜ 时段画像：{profile}"
     lines.append(read_info)
+    if months:
+        lines.append("> 在读月份：" + "、".join(f"[[{y}年{mo}月阅读统计]]" for y, mo in months))
     lines.append("")
     if not items:
         lines.append("> 本期尚未记录划线。")
@@ -146,13 +148,15 @@ def set_finish_date(content, date):
 def main():
     sync_date = datetime.date.today().isoformat()
     report = []
+    all_books = load_all_month_books()
     for b in books:
         short = b["short"]
         title = b.get("title") or short
         status = "读完" if b.get("finished") else "在读"
         n_marks = len(b.get("marks") or [])
         prog = b.get("progress", 0)
-        sec = build_mark_section(b, sync_date)
+        months = sorted(set(all_books.get(short, {}).get("months", [])))
+        sec = build_mark_section(b, sync_date, months)
         path = find_note(short, title)
         if path is None:
             path = os.path.join(SHELF, title + ".md")
@@ -170,6 +174,7 @@ def main():
             mark_idx = content.find(END_MARK, idx)
             if mark_idx != -1:
                 tail = content[mark_idx + len(END_MARK):]
+                tail = re.sub(r"(?m)^\s*<!-- weread_month_links -->\s*> 在读月份：[^\n]*\n?", "", tail)
                 content = content[:idx].rstrip() + "\n\n" + sec + "\n" + tail
             else:
                 # 旧格式文件（无结束标记）：SECTION 之后全为脚本生成的旧区块，整体替换
@@ -184,11 +189,8 @@ def main():
         report.append(f"[更新] {os.path.basename(path)} -> {status} {prog}% 划线{n_marks}条")
     print("\n".join(report))
     print(f"共同步 {len(report)} 本")
-    sync_month_links_all()
+    sync_month_links_all({b["short"] for b in books})
 
-
-
-MONTH_LINKS_MARK = "<!-- weread_month_links -->"
 
 
 def load_all_month_books():
@@ -218,46 +220,51 @@ def load_all_month_books():
     return out
 
 
-def upsert_month_links(path, months):
-    """在书页 END_MARK 之后写入/更新「在读月份」区块（只维护该区块，不影响划线与用户内容）"""
+def upsert_month_line(content, months):
+    """在划线区块内更新/插入「在读月份」行（只动这一行，保留其余内容）"""
     if not months:
-        return False
-    links = "、".join(f"[[{y}年{mo}月阅读统计]]" for y, mo in months)
-    block = f"\n{MONTH_LINKS_MARK}\n> 在读月份：{links}\n"
-    try:
-        with open(path, encoding="utf-8") as f:
-            content = f.read()
-    except OSError:
-        return False
-    mark_idx = content.find(MONTH_LINKS_MARK)
-    if mark_idx != -1:
-        end = content.find("\n\n", mark_idx)
-        if end == -1:
-            end = len(content)
-        content = content[:mark_idx] + block + content[end:].lstrip("\n")
+        return content
+    line = "> 在读月份：" + "、".join(f"[[{y}年{mo}月阅读统计]]" for y, mo in months)
+    # 只在划线区块内操作（END_MARK 之前）；并清理文件尾部旧版残留的「在读月份」区块
+    end_mark_idx = content.find(END_MARK)
+    if end_mark_idx != -1:
+        head, tail_rest = content[:end_mark_idx], content[end_mark_idx:]
+        tail_rest = re.sub(r"(?m)^\s*<!-- weread_month_links -->\s*> 在读月份：[^\n]*\n?", "", tail_rest)
     else:
-        em = content.find(END_MARK)
-        insert_at = em + len(END_MARK) if em != -1 else len(content)
-        content = content[:insert_at] + "\n" + block + content[insert_at:].lstrip("\n")
-    try:
-        with open(path, "w", encoding="utf-8") as f:
-            f.write(content)
-    except OSError:
-        return False
-    return True
+        head, tail_rest = content, ""
+    new_head, n = re.subn(r"(?m)^> 在读月份：.*$", line, head, count=1)
+    if n:
+        return new_head + tail_rest
+    m = re.search(r"(?m)^(> 本月阅读：[^\n]*)\n", head)
+    if m:
+        return head[:m.end()] + line + "\n" + head[m.end():] + tail_rest
+    return content
 
 
-def sync_month_links_all():
-    """为所有有在读记录的书页维护「在读月份」区块（当前月 + 历史月全覆盖）"""
+def sync_month_links_all(current_shorts):
+    """为历史月单独读过的书页维护「在读月份」行（当前月书已由 main 重建划线区处理）"""
     all_books = load_all_month_books()
     n = 0
     for short, rec in all_books.items():
+        if short in current_shorts:
+            continue
         path = find_note(short, rec.get("title"))
         if path is None:
             continue
-        if upsert_month_links(path, rec["months"]):
+        try:
+            with open(path, encoding="utf-8") as f:
+                content = f.read()
+        except OSError:
+            continue
+        updated = upsert_month_line(content, rec["months"])
+        if updated != content:
+            try:
+                with open(path, "w", encoding="utf-8") as f:
+                    f.write(updated)
+            except OSError:
+                continue
             n += 1
-    print(f"已更新 {n} 本书页的「在读月份」")
+    print(f"已更新 {n} 本历史月书页的「在读月份」")
     return n
 
 
