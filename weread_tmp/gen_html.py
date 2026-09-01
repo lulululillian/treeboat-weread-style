@@ -565,6 +565,40 @@ def tag_html(label, value):
     return (f'<div style="font-size:12px;color:#7E748C;margin-top:10px"><span style="color:#B9A5A8">{label}</span> '
             f'<span style="background:#E6D4C0;color:#414969;padding:3px 10px;border-radius:12px;font-size:12px">{value}</span></div>')
 
+def _fallback_prefer(books):
+    """微信读书未返回偏好时段时，按划线时间统计整月活跃时段，返回 (prefer_time dict, 时段文字)"""
+    from collections import Counter
+    hc = Counter()
+    for bk in books or []:
+        for x in (bk.get("mark_items") or []):
+            tt = x.get("t", 0)
+            if tt:
+                hc[datetime.datetime.fromtimestamp(tt, TZ).hour] += 1
+    if not hc:
+        return {}, ""
+    top = max(hc.values())
+    hours = sorted(h for h, c in hc.items() if c >= top * 0.4)
+    segs = []
+    if hours:
+        start = prev = hours[0]
+        for h in hours[1:]:
+            if h - prev <= 2:
+                prev = h
+            else:
+                segs.append((start, prev))
+                start = prev = h
+        segs.append((start, prev))
+    if not segs:
+        return {}, ""
+    best = max(segs, key=lambda s: sum(hc.get(h, 0) for h in range(s[0], s[1] + 1)))
+    word = f"{best[0]:02d}-{best[1] + 1:02d}点"
+    base = datetime.datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
+    pt = {}
+    for h in range(best[0], best[1] + 1):
+        pt[str(int(base.replace(hour=h).timestamp()))] = hc.get(h, 0)
+    return pt, word
+
+
 def prefer_time_html(pt):
     if not pt:
         return '<div style="font-size:12px;color:#B9A5A8;padding:6px 0">暂无固定阅读时段</div>'
@@ -607,9 +641,17 @@ if D.get("prefer_time"):
                          f'24 小时时段分布{" · " + pt_word if pt_word else ""}</div>'
                          f'{prefer_time_html(D.get("prefer_time"))}</div>')
 else:
-    prefer_time_block = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;'
-                         f'padding:14px 16px;margin-bottom:14px">'
-                         f'<span style="font-size:12px;color:#B9A5A8">本月阅读时长不足，暂不分析偏好时段</span></div>')
+    _fb_pt, _fb_pw = _fallback_prefer(D.get("books", []))
+    if _fb_pt:
+        prefer_time_block = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;'
+                             f'padding:16px;margin-bottom:14px">'
+                             f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">'
+                             f'24 小时时段分布 · {_fb_pw}（按划线时间补充）</div>'
+                             f'{prefer_time_html(_fb_pt)}</div>')
+    else:
+        prefer_time_block = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;'
+                             f'padding:14px 16px;margin-bottom:14px">'
+                             f'<span style="font-size:12px;color:#B9A5A8">暂无固定阅读时段</span></div>')
 
 # 分类
 prefer_block = f'''<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;padding:16px;margin-bottom:14px">
