@@ -233,6 +233,7 @@ root.innerHTML = H + M + W + D;
 // 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
 function runRingFill(ring) {
   ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
+    if (parseInt(p.getAttribute('data-count') || '0', 10) <= 0) return; // 空数据段不做填充动画，直接显示
     var da = p.getAttribute('stroke-dasharray');
     p.style.strokeDashoffset = da;
     p.style.animation = 'none';
@@ -347,6 +348,7 @@ bindThemeSel(root);
 _INTERACT_JS = """// 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
 function runRingFill(ring) {
   ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
+    if (parseInt(p.getAttribute('data-count') || '0', 10) <= 0) return; // 空数据段不做填充动画，直接显示
     var da = p.getAttribute('stroke-dasharray');
     p.style.strokeDashoffset = da;
     p.style.animation = 'none';

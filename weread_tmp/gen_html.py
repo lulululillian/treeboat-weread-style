@@ -489,12 +489,16 @@ def ring_clock_svg(hour_counts, size=140, label="划线"):
         y2 = cy + r * math.sin(math.radians(end_a))
         if count == 0:
             stroke, opacity = "#E6D4C0", "0.35"
+            dash_off = 0.0
+            dcount = 0
         else:
             stroke, opacity = "#414969", f"{0.3 + 0.7 * (count / max_count):.2f}"
+            dash_off = arc_len
+            dcount = count
         segments.append(
-            f'<path class="wr-ring-seg" data-hour="{h}" d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
+            f'<path class="wr-ring-seg" data-hour="{h}" data-count="{dcount}" d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
             f'fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{opacity}" '
-            f'stroke-dasharray="{arc_len:.1f}" stroke-dashoffset="{arc_len:.1f}" '
+            f'stroke-dasharray="{arc_len:.1f}" stroke-dashoffset="{dash_off:.1f}" '
             f'style="cursor:pointer;'
             f'transition:stroke-width .15s ease,stroke-opacity .15s ease;'
             f'--wr-base:{opacity};--wr-base-w:{stroke_w}">'
@@ -786,6 +790,7 @@ segs.forEach(btn => {{
 // 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
 function runRingFill(ring) {{
   ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {{
+    if (parseInt(p.getAttribute('data-count') || '0', 10) <= 0) return; // 空数据段不做填充动画，直接显示
     var da = p.getAttribute('stroke-dasharray');
     p.style.strokeDashoffset = da;
     p.style.animation = 'none';
