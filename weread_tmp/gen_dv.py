@@ -328,6 +328,75 @@ bindThemeSel(root);
   requestAnimationFrame(tick);
 })();"""
 
+# ---- 月视图交互动效（当前月/历史月共用）：环形时钟波浪 + 封面画廊自动滚动 ----
+_INTERACT_JS = """// 环形时钟波浪动效：注入 keyframes + JS事件绑定，以悬停段为中心向两侧扩散
+const _wrRingStyle = document.createElement('style');
+_wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-width:var(--wr-base-w,12)}50%{stroke-width:calc(var(--wr-base-w,12) + 5)}}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
+root.appendChild(_wrRingStyle);
+root.querySelectorAll('.wr-ring-svg').forEach(function(svg){
+  var segs=svg.querySelectorAll('.wr-ring-seg');
+  segs.forEach(function(seg){
+    seg.addEventListener('mouseenter',function(){
+      var h=parseInt(seg.getAttribute('data-hour'));
+      segs.forEach(function(s){
+        var i=parseInt(s.getAttribute('data-hour'));
+        var dist=Math.min(Math.abs(i-h),24-Math.abs(i-h));
+        var delay=dist*0.05+(dist%2)*0.015;
+        s.style.strokeDashoffset='0';
+        s.style.animation='wrRingWave 1.5s ease-in-out infinite';
+        s.style.animationDelay=delay+'s';
+      });
+    });
+    seg.addEventListener('mouseleave',function(){
+      segs.forEach(function(s){s.style.animation='';s.style.animationDelay='';s.style.strokeDashoffset='0';});
+    });
+  });
+});
+(function(){
+  const g = root.querySelector('#wr-cover-gallery');
+  if (!g) return;
+  let paused = false;
+  let visible = true;
+  g.addEventListener('mouseenter', function(){ paused = true; });
+  g.addEventListener('mouseleave', function(){ paused = false; });
+  g.addEventListener('wheel', function(e){
+    e.preventDefault();
+    g.scrollLeft += e.deltaY;
+  }, {passive:false});
+  // 封面点击跳转：事件委托绑定到 document，防止 DataviewJS 重渲染/导航回来后事件丢失
+  if (!window.__weread_cover_click_bound) {
+    window.__weread_cover_click_bound = true;
+    document.addEventListener('click', function(e){
+      const a = e.target.closest('#wr-cover-gallery a[data-note]');
+      if (!a) return;
+      e.preventDefault();
+      const note = a.getAttribute('data-note');
+      if (note && typeof app !== 'undefined' && app.workspace) {
+        app.workspace.openLinkText(note, '', false);
+      }
+    });
+  }
+  try {
+    new IntersectionObserver(function(es){
+      es.forEach(function(en){ visible = en.isIntersecting; });
+    }).observe(g);
+  } catch(e) {}
+  const maxScroll = function(){ return g.scrollWidth - g.clientWidth; };
+  let lastTs = 0;
+  function tick(ts){
+    if (!g.isConnected) return;
+    if (!paused && visible) {
+      const mx = maxScroll();
+      if (mx > 0) {
+        if (g.scrollLeft >= mx - 1) { g.scrollLeft = 0; }
+        else { g.scrollLeft += 1; }
+      }
+    }
+    requestAnimationFrame(tick);
+  }
+  requestAnimationFrame(tick);
+})();"""
+
 JS = SKIN_JS + "\n" + JS
 js = (JS.replace("%HEADER%", header).replace("%MONTH%", month)
         .replace("%WEEK%", week).replace("%DAY%", day)
@@ -493,6 +562,7 @@ if os.path.isdir(DATA_DIR):
                "const H = `%HEADER%`;\nconst M = `%MONTH%`;\n"
                "const root = dv.container.createEl('div');\n"
                "root.innerHTML = H + M;\n"
+               + _INTERACT_JS + "\n"
                + _report_click_js() + "\n"
                "bindThemeSel(root);")
         hjs = (hjs.replace("%HEADER%", hheader).replace("%MONTH%", hmonth)
