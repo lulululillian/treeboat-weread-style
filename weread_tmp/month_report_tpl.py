@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """月报 dataviewjs 模板 — 舟读・微信读书阅读月报（Obsidian 内渲染）
-数据源：同目录 data/YYYY-MM.json（由 refresh.py 自动归档 / archive_month.py 补生成）。
+数据源：同目录 .data/YYYY-MM.json（Obsidian 隐藏文件夹）（由 refresh.py 自动归档 / archive_month.py 补生成）。
 由 gen_dv.py（页面按钮写入）与 gen_monthly_summary.py（命令行）共用，保证两种入口产物一致。
 """
 import datetime
@@ -58,7 +58,7 @@ RENDER_JS = r"""
   const root = dv.container.createEl('div');
   const cur = dv.current().file.path;
   const dir = cur.indexOf('/') >= 0 ? cur.substring(0, cur.lastIndexOf('/')) : '';
-  const dataPath = dir + '/data/__YM__.json';
+  const dataPath = dir + '/.data/__YM__.json';
   async function main(){
     let D = null;
     try {

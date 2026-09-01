@@ -38,7 +38,7 @@ def fetch_monthly():
 
 
 def save_week_snapshot(here):
-    r"""归档本周快照到 vault data\week-snapshots\week-YYYY-MM-DD.json（周一起始日）
+    r"""归档本周快照到 vault .data\week-snapshots\week-YYYY-MM-DD.json（周一起始日）
     供周视图计算「较上周日均」环比；每次刷新都更新本周快照。"""
     try:
         with open(os.path.join(here, "dash_data.json"), encoding="utf-8") as f:
@@ -142,7 +142,7 @@ def main():
             json.dump(data, f, ensure_ascii=False, indent=2)
         print("monthly.json 已更新:", len(data.get("readTimes", {})), "个阅读日")
         subprocess.run([sys.executable, os.path.join(here, "prep_dash.py")], cwd=root, check=True)
-        # 归档当月 dash 到 vault data\YYYY-MM.json（历史月份查看 + 月度总结数据源）
+        # 归档当月 dash 到 vault .data\YYYY-MM.json（历史月份查看 + 月度总结数据源）
         try:
             with open(os.path.join(here, "dash_data.json"), encoding="utf-8") as f:
                 dash = json.load(f)

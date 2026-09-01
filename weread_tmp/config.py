@@ -85,8 +85,10 @@ def stats_dir():
 
 
 def data_dir():
-    """历史数据目录（dash 归档 + 周快照）"""
-    return os.path.join(stats_dir(), "data").replace("\\", "/")
+    """历史数据目录（dash 归档 + 周快照）
+    注意：目录名用 .data（点开头），Obsidian 文件浏览器默认隐藏点开头文件夹，
+    避免 data 里的 json/周快照显示在用户库中；dataview/vault 读取不受影响。"""
+    return os.path.join(stats_dir(), ".data").replace("\\", "/")
 
 
 def shelf_dir():

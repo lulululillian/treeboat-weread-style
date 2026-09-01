@@ -111,7 +111,7 @@ def theme_sel_html():
             'font-family:inherit;cursor:pointer;outline:none" title="切换配色">' + opts + '</select>')
 
 def hist_links_html():
-    r"""扫描 data\YYYY-MM.json（排除当前月），生成历史入口链接"""
+    r"""扫描 .data\YYYY-MM.json（排除当前月），生成历史入口链接"""
     if not os.path.isdir(DATA_DIR):
         return ""
     files = sorted(glob.glob(os.path.join(DATA_DIR, "*.json")))
@@ -457,7 +457,7 @@ if strip_aigc_frontmatter(_ov_out):
 print("overview:", _ov_out, f"({len(_ov_md)} chars)")
 
 
-# ---- 历史月份快照：逐个 data\YYYY-MM.json 生成 阅读统计-YYYY-MM.md ----
+# ---- 历史月份快照：逐个 .data\YYYY-MM.json 生成 阅读统计-YYYY-MM.md ----
 if os.path.isdir(DATA_DIR):
     hist_files = sorted(glob.glob(os.path.join(DATA_DIR, "*.json")))
     for fp in hist_files:

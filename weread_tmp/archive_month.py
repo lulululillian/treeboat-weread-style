@@ -3,7 +3,7 @@
 archive_month.py — 归档指定月份的微信读书阅读统计
 用法: python archive_month.py YYYY-MM   (如 python archive_month.py 2026-07)
 流程: 按目标月 15 日 baseTime 调 /readdata/detail monthly → prep_dash
-      → 输出 dash 到 vault 内 data\YYYY-MM.json（供历史月份查看与月度总结复用）
+      → 输出 dash 到 vault 内 .data\YYYY-MM.json（供历史月份查看与月度总结复用）
 说明: prep_dash.py 会额外请求 /user/notebooks 与 /book/bookmarklist（实时状态/划线），
       归档内容与每月刷新生成的口径一致。
 """

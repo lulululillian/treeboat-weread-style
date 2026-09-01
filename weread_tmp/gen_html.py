@@ -191,6 +191,8 @@ def heatmap_svg():
     return "".join(h), n_rows
 
 def top5_html():
+    if not books:
+        return '<div style="font-size:12px;color:#7E748C;padding:6px 0">暂无阅读记录</div>'
     max_min = max(b["min"] for b in books)
     bars = []
     for b in books[:6]:  # 只取前 6 名，超出不显示（读书卡仍全量展示）

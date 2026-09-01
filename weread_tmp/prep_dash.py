@@ -75,7 +75,7 @@ while True:
 books = []
 day_book_map = {}
 book_mark_days = {}  # short -> [本月划线所在日...]（含重复，用于周维度按条统计）
-for b in m.get("readLongest", []):
+for b in (m.get("readLongest") or []):
     bk = b.get("book", {})
     title_full = bk.get("title", "")
     short = title_full.split("：")[0].split("(")[0].strip()
