@@ -232,14 +232,15 @@ const root = dv.container.createEl('div');
 root.innerHTML = H + M + W + D;
 // 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
 function runRingFill(ring) {
-  ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
-    if (parseInt(p.getAttribute('data-count') || '0', 10) <= 0) return; // 空数据段不做填充动画，直接显示
-    var da = p.getAttribute('stroke-dasharray');
-    p.style.strokeDashoffset = da;
-    p.style.animation = 'none';
-    void p.offsetWidth;
-    p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
-  });
+  setTimeout(function() {
+    ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
+      var da = p.getAttribute('stroke-dasharray');
+      p.style.strokeDashoffset = da;
+      p.style.animation = 'none';
+      void p.offsetWidth;
+      p.style.animation = 'wereadRingFill 0.25s ease-out ' + (i * 10) + 'ms forwards';
+    });
+  }, 200);
 }
 requestAnimationFrame(function() {
   requestAnimationFrame(function() {
@@ -347,14 +348,15 @@ bindThemeSel(root);
 # ---- 月视图交互动效（当前月/历史月共用）：环形时钟波浪 + 封面画廊自动滚动 ----
 _INTERACT_JS = """// 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
 function runRingFill(ring) {
-  ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
-    if (parseInt(p.getAttribute('data-count') || '0', 10) <= 0) return; // 空数据段不做填充动画，直接显示
-    var da = p.getAttribute('stroke-dasharray');
-    p.style.strokeDashoffset = da;
-    p.style.animation = 'none';
-    void p.offsetWidth;
-    p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
-  });
+  setTimeout(function() {
+    ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
+      var da = p.getAttribute('stroke-dasharray');
+      p.style.strokeDashoffset = da;
+      p.style.animation = 'none';
+      void p.offsetWidth;
+      p.style.animation = 'wereadRingFill 0.25s ease-out ' + (i * 10) + 'ms forwards';
+    });
+  }, 200);
 }
 requestAnimationFrame(function() {
   requestAnimationFrame(function() {
