@@ -599,30 +599,25 @@ def _fallback_prefer(books):
     return pt, word
 
 
-def prefer_time_html(pt):
+def prefer_time_html(pt, pt_word=""):
+    """偏好时段：直接一句话标明时间段（不再用进度条，避免混淆）"""
     if not pt:
-        return '<div style="font-size:12px;color:#B9A5A8;padding:6px 0">暂无固定阅读时段</div>'
-    items = []
-    for ts, sec in pt.items():
+        return ""
+    hours = []
+    for ts in pt:
         try:
             hh = datetime.datetime.fromtimestamp(int(ts), TZ).hour
         except Exception:
             continue
-        items.append((hh, int(sec)))
-    items.sort()
-    if not items:
-        return '<div style="font-size:12px;color:#B9A5A8;padding:6px 0">暂无固定阅读时段</div>'
-    mx = max(s for _, s in items) or 1
-    bars = []
-    for hh, sec in items:
-        pct = int(round(sec / mx * 100))
-        bars.append(
-            f'<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">'
-            f'<div style="width:34px;font-size:10px;color:#7E748C;text-align:right;flex-shrink:0">{hh}:00</div>'
-            f'<div style="flex:1;height:10px;background:#E6D4C0;border-radius:4px;overflow:hidden">'
-            f'<div style="height:100%;width:{pct}%;background:#414969;border-radius:4px"></div></div>'
-            f'<div style="width:52px;font-size:10px;color:#7E748C;flex-shrink:0">{fmt_sec(sec)}</div></div>')
-    return "".join(bars)
+        hours.append(hh)
+    if not hours:
+        return ""
+    hours.sort()
+    lo, hi = hours[0], hours[-1]
+    text = pt_word or f"{lo:02d}:00-{hi + 1:02d}:00"
+    return (f'<div style="font-size:13px;color:#414969;font-weight:500;'
+            f'padding:2px 0">{text}</div>')
+
 
 prefer_extra = ""
 if D.get("prefer_author"):
@@ -637,17 +632,15 @@ prefer_time_block = ''
 if D.get("prefer_time"):
     prefer_time_block = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;'
                          f'padding:16px;margin-bottom:14px">'
-                         f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">'
-                         f'24 小时时段分布{" · " + pt_word if pt_word else ""}</div>'
-                         f'{prefer_time_html(D.get("prefer_time"))}</div>')
+                         f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">本月阅读偏好时段</div>'
+                         f'{prefer_time_html(D.get("prefer_time"), pt_word)}</div>')
 else:
     _fb_pt, _fb_pw = _fallback_prefer(D.get("books", []))
     if _fb_pt:
         prefer_time_block = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;'
                              f'padding:16px;margin-bottom:14px">'
-                             f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">'
-                             f'24 小时时段分布 · {_fb_pw}（按划线时间补充）</div>'
-                             f'{prefer_time_html(_fb_pt)}</div>')
+                             f'<div style="font-size:14px;font-weight:500;margin-bottom:12px">本月阅读偏好时段</div>'
+                             f'{prefer_time_html(_fb_pt, _fb_pw)}</div>')
     else:
         prefer_time_block = (f'<div style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:12px;'
                              f'padding:14px 16px;margin-bottom:14px">'
