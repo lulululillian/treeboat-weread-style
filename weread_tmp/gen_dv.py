@@ -28,23 +28,57 @@ def vault_uri(note_abs):
 _AIGC_KEYS = ("AIGC", "ContentProducer", "ProduceID", "ReservedCode")
 
 
+def _shelf_note_names():
+    """书架目录下所有笔记名（去掉 .md），用于把书目解析为真实存在的 wikilink 目标。"""
+    try:
+        names = [os.path.splitext(f)[0]
+                 for f in os.listdir(config.shelf_dir())
+                 if f.lower().endswith(".md")]
+    except OSError:
+        return []
+    return names
+
+
+def _resolve_note_name(candidates, shelf_names):
+    """把一本书的候选名（title / short）解析为书架里真实存在的笔记名。
+
+    优先精确匹配；无精确匹配时做唯一包含匹配（书名含书架名 或 书架名含书名，
+    且只命中一个），保证生成的 [[...]] 一定有对应笔记，绝不产出死链接。
+    """
+    for c in candidates:
+        if not c:
+            continue
+        if c in shelf_names:
+            return c
+    for c in candidates:
+        if not c:
+            continue
+        hits = [s for s in shelf_names if (c in s) or (s in c)]
+        if len(hits) == 1:
+            return hits[0]
+    return None
+
+
 def _month_links_comment(books):
-    """生成本月阅读关联书籍的可见链接行（位于统计页 dataviewjs 块后）。
+    """生成本月阅读关联书籍的链接文本（位于统计页 dataviewjs 块后）。
 
     Obsidian 的反向链接只统计"真实可见"的内部链接 [[书名]]；%%注释%% 与
     HTML span display:none 等隐藏手段都不会被索引为反链（已源码+实测确认）。
-    因此这里输出一行低调的 markdown 引用块链接，确保书页反向链接面板能显示
-    该月统计来源、点击即可跳回对应月份。书名含 wiki 链接/HTML 特殊字符时跳过。
+    因此这里输出一段真实的 markdown 链接文本，且每个 [[书名]] 都精确对应
+    书架笔记的实际文件名（名字必须一一对应，否则是未解析的死链接、不建立反链）。
     """
-    titles = []
+    shelf_names = _shelf_note_names()
+    links = []
     for _b in (books or []):
-        _t = (_b.get("title") or _b.get("short") or "").strip()
-        if not _t or any(_c in _t for _c in "|#^[]<>&"):
+        title = (_b.get("title") or "").strip()
+        short = (_b.get("short") or "").strip()
+        name = _resolve_note_name([title, short], shelf_names)
+        if not name or any(_c in name for _c in "|#^[]<>&"):
             continue
-        titles.append(_t)
-    if not titles:
+        links.append("[[" + name + "]]")
+    if not links:
         return ""
-    return "\n---\n\n> 📚 本月在读：" + "、".join("[[" + _t + "]]" for _t in titles) + "\n"
+    return "\n" + "、".join(links) + "\n"
 
 
 def strip_aigc_frontmatter(path):
