@@ -567,7 +567,7 @@ def tag_html(label, value):
 
 def prefer_time_html(pt):
     if not pt:
-        return '<div style="font-size:12px;color:#B9A5A8;padding:6px 0">阅读时长不足，暂不分析时段</div>'
+        return '<div style="font-size:12px;color:#B9A5A8;padding:6px 0">暂无固定阅读时段</div>'
     items = []
     for ts, sec in pt.items():
         try:
@@ -577,7 +577,7 @@ def prefer_time_html(pt):
         items.append((hh, int(sec)))
     items.sort()
     if not items:
-        return '<div style="font-size:12px;color:#B9A5A8;padding:6px 0">阅读时长不足，暂不分析时段</div>'
+        return '<div style="font-size:12px;color:#B9A5A8;padding:6px 0">暂无固定阅读时段</div>'
     mx = max(s for _, s in items) or 1
     bars = []
     for hh, sec in items:

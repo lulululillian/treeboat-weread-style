@@ -213,6 +213,48 @@ for k in day_book_map:
     day_book_map[k] = list(dict.fromkeys(day_book_map[k]))
 
 # ---- 输出 ----
+def _compute_fallback_prefer(hc):
+    """微信读书未返回偏好时段时，按划线时间统计整月活跃时段，返回 (prefer_time, prefer_time_word)"""
+    if not hc:
+        return {}, ""
+    top = max(hc.values())
+    hours = sorted(h for h, c in hc.items() if c >= top * 0.4)
+    segs = []
+    if hours:
+        start = prev = hours[0]
+        for h in hours[1:]:
+            if h - prev <= 2:
+                prev = h
+            else:
+                segs.append((start, prev))
+                start = prev = h
+        segs.append((start, prev))
+    if not segs:
+        return {}, ""
+    best = max(segs, key=lambda s: sum(hc.get(h, 0) for h in range(s[0], s[1] + 1)))
+    word = f"{best[0]:02d}-{best[1] + 1:02d}点"
+    base = datetime.datetime.now(TZ).replace(minute=0, second=0, microsecond=0)
+    pt = {}
+    for h in range(best[0], best[1] + 1):
+        ts = base.replace(hour=h).timestamp()
+        pt[str(int(ts))] = hc.get(h, 0)
+    return pt, word
+
+
+# 兜底：微信读书未返回偏好时段时（时段较分散，接口判定不足），按划线时间自行统计整月活跃时段
+_pt_api = m.get("preferTime") or {}
+_pw_api = m.get("preferTimeWord") or ""
+if not _pt_api:
+    from collections import Counter as _Ctr
+    _hc = _Ctr()
+    for _bk in books:
+        for _x in (_bk.get("mark_items") or []):
+            _t = _x.get("t", 0)
+            if _t:
+                _hc[datetime.datetime.fromtimestamp(_t, TZ).hour] += 1
+    _pt_api, _pw_api = _compute_fallback_prefer(_hc)
+
+
 out = {
     "year": CUR_YEAR,
     "month": CUR_MONTH,
@@ -224,8 +266,8 @@ out = {
     "prefer": prefer,
     "day_book_map": day_book_map,
     "book_mark_days": book_mark_days,
-    "prefer_time": m.get("preferTime") or {},
-    "prefer_time_word": m.get("preferTimeWord") or "",
+    "prefer_time": _pt_api or {},
+    "prefer_time_word": _pw_api or "",
     "compare": m.get("compare"),
     "prefer_author": m.get("preferAuthor") or "",
     "prefer_publisher": m.get("preferPublisher") or "",
