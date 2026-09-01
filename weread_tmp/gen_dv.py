@@ -230,6 +230,21 @@ const W = `%WEEK%`;
 const D = `%DAY%`;
 const root = dv.container.createEl('div');
 root.innerHTML = H + M + W + D;
+// 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
+function runRingFill(ring) {
+  ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
+    var da = p.getAttribute('stroke-dasharray');
+    p.style.strokeDashoffset = da;
+    p.style.animation = 'none';
+    void p.offsetWidth;
+    p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
+  });
+}
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    root.querySelectorAll('.view.active .wr-ring-svg').forEach(runRingFill);
+  });
+});
 // 环形时钟波浪动效：注入 keyframes + JS事件绑定，以悬停段为中心向两侧扩散
 const _wrRingStyle = document.createElement('style');
 _wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-width:var(--wr-base-w,12)}50%{stroke-width:calc(var(--wr-base-w,12) + 5)}}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
@@ -329,7 +344,22 @@ bindThemeSel(root);
 })();"""
 
 # ---- 月视图交互动效（当前月/历史月共用）：环形时钟波浪 + 封面画廊自动滚动 ----
-_INTERACT_JS = """// 环形时钟波浪动效：注入 keyframes + JS事件绑定，以悬停段为中心向两侧扩散
+_INTERACT_JS = """// 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
+function runRingFill(ring) {
+  ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {
+    var da = p.getAttribute('stroke-dasharray');
+    p.style.strokeDashoffset = da;
+    p.style.animation = 'none';
+    void p.offsetWidth;
+    p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
+  });
+}
+requestAnimationFrame(function() {
+  requestAnimationFrame(function() {
+    root.querySelectorAll('.view.active .wr-ring-svg').forEach(runRingFill);
+  });
+});
+// 环形时钟波浪动效：注入 keyframes + JS事件绑定，以悬停段为中心向两侧扩散
 const _wrRingStyle = document.createElement('style');
 _wrRingStyle.textContent = '@keyframes wrRingWave{0%,100%{stroke-width:var(--wr-base-w,12)}50%{stroke-width:calc(var(--wr-base-w,12) + 5)}}.wr-ring-seg:hover{stroke-opacity:1!important;filter:brightness(1.2)!important}';
 root.appendChild(_wrRingStyle);

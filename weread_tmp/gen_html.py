@@ -495,7 +495,7 @@ def ring_clock_svg(hour_counts, size=140, label="划线"):
             f'<path class="wr-ring-seg" data-hour="{h}" d="M {x1:.1f} {y1:.1f} A {r} {r} 0 0 1 {x2:.1f} {y2:.1f}" '
             f'fill="none" stroke="{stroke}" stroke-width="{stroke_w}" stroke-opacity="{opacity}" '
             f'stroke-dasharray="{arc_len:.1f}" stroke-dashoffset="{arc_len:.1f}" '
-            f'style="animation:wereadRingFill 0.4s ease-out {h * 15}ms forwards;cursor:pointer;'
+            f'style="cursor:pointer;'
             f'transition:stroke-width .15s ease,stroke-opacity .15s ease;'
             f'--wr-base:{opacity};--wr-base-w:{stroke_w}">'
             f'<title>{h:02d}:00 · {count} 条划线</title></path>')
@@ -781,6 +781,26 @@ segs.forEach(btn => {{
         p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
       }});
     }}
+  }});
+}});
+// 圆环加载填充：只对激活视图圆环触发，延迟错峰，避免多圆环同时动画导致停滞
+function runRingFill(ring) {{
+  ring.querySelectorAll('.wr-ring-seg').forEach(function(p, i) {{
+    var da = p.getAttribute('stroke-dasharray');
+    p.style.strokeDashoffset = da;
+    p.style.animation = 'none';
+    void p.offsetWidth;
+    p.style.animation = 'wereadRingFill 0.4s ease-out ' + (i * 15) + 'ms forwards';
+  }});
+}}
+requestAnimationFrame(function() {{
+  requestAnimationFrame(function() {{
+    views.forEach(function(v) {{
+      if (v.classList.contains('active')) {{
+        var rg = v.querySelector('.wr-ring-svg');
+        if (rg) runRingFill(rg);
+      }}
+    }});
   }});
 }});
 // 环形时钟波浪动效：鼠标悬停某段时，以该段为中心向两侧扩散波浪
