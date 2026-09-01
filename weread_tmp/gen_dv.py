@@ -28,6 +28,23 @@ def vault_uri(note_abs):
 _AIGC_KEYS = ("AIGC", "ContentProducer", "ProduceID", "ReservedCode")
 
 
+def _month_links_comment(books):
+    """生成本月在读关联书籍的 Obsidian 注释（%%..%%）。
+
+    注释内 [[书名]] 会被 Obsidian 索引为反向链接（书页显示该月统计来源，实现双向跳转），
+    而注释本身不显示在页面上。书名含 wiki 链接特殊字符（| # ^ [ ]）时跳过。
+    """
+    titles = []
+    for _b in (books or []):
+        _t = (_b.get("title") or _b.get("short") or "").strip()
+        if not _t or any(_c in _t for _c in "|#^[]"):
+            continue
+        titles.append(_t)
+    if not titles:
+        return ""
+    return "\n%% 本月在读关联：" + "、".join("[[" + _t + "]]" for _t in titles) + " %%\n"
+
+
 def strip_aigc_frontmatter(path):
     """删除 md 头部由外部同步服务注入的 AIGC frontmatter 块。
 
@@ -405,7 +422,7 @@ js = (JS.replace("%HEADER%", header).replace("%MONTH%", month)
         .replace("_report_click_js()", _report_click_js()))
 
 now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
-md = "```dataviewjs\n" + js + "\n```\n"
+md = "```dataviewjs\n" + js + "\n```\n" + _month_links_comment(ns.get("books", []))
 
 OUT_MD = os.path.join(OUT_DIR, f"{YEAR}年{MONTH}月阅读统计.md")
 OUT_HTML = os.path.join(OUT_DIR, "阅读统计.html")
@@ -567,7 +584,7 @@ if os.path.isdir(DATA_DIR):
                "bindThemeSel(root);")
         hjs = (hjs.replace("%HEADER%", hheader).replace("%MONTH%", hmonth)
                    .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY))
-        hmd = "```dataviewjs\n" + hjs + "\n```\n"
+        hmd = "```dataviewjs\n" + hjs + "\n```\n" + _month_links_comment(hns.get("books", []))
         hout = os.path.join(OUT_DIR, f"{y}年{mo}月阅读统计.md")
         with open(hout, "w", encoding="utf-8") as f:
             f.write(hmd)
