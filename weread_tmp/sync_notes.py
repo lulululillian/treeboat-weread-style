@@ -184,6 +184,81 @@ def main():
         report.append(f"[更新] {os.path.basename(path)} -> {status} {prog}% 划线{n_marks}条")
     print("\n".join(report))
     print(f"共同步 {len(report)} 本")
+    sync_month_links_all()
+
+
+
+MONTH_LINKS_MARK = "<!-- weread_month_links -->"
+
+
+def load_all_month_books():
+    """扫描 .data/*.json 归档，返回 {short: {"title":.., "months":[(y,m),..]}}"""
+    data_dir = config.data_dir()
+    out = {}
+    if not os.path.isdir(data_dir):
+        return out
+    for fn in os.listdir(data_dir):
+        m = re.match(r"^(\d{4})-(\d{2})\.json$", fn)
+        if not m:
+            continue
+        y, mo = int(m.group(1)), int(m.group(2))
+        try:
+            with open(os.path.join(data_dir, fn), encoding="utf-8") as f:
+                d = json.load(f)
+        except OSError:
+            continue
+        for b in d.get("books") or []:
+            short = (b.get("short") or "").strip()
+            if not short:
+                continue
+            rec = out.setdefault(short, {"title": (b.get("title") or short).strip(), "months": []})
+            rec["months"].append((y, mo))
+    for rec in out.values():
+        rec["months"] = sorted(set(rec["months"]))
+    return out
+
+
+def upsert_month_links(path, months):
+    """在书页 END_MARK 之后写入/更新「在读月份」区块（只维护该区块，不影响划线与用户内容）"""
+    if not months:
+        return False
+    links = "、".join(f"[[{y}年{mo}月阅读统计]]" for y, mo in months)
+    block = f"\n{MONTH_LINKS_MARK}\n> 在读月份：{links}\n"
+    try:
+        with open(path, encoding="utf-8") as f:
+            content = f.read()
+    except OSError:
+        return False
+    mark_idx = content.find(MONTH_LINKS_MARK)
+    if mark_idx != -1:
+        end = content.find("\n\n", mark_idx)
+        if end == -1:
+            end = len(content)
+        content = content[:mark_idx] + block + content[end:].lstrip("\n")
+    else:
+        em = content.find(END_MARK)
+        insert_at = em + len(END_MARK) if em != -1 else len(content)
+        content = content[:insert_at] + "\n" + block + content[insert_at:].lstrip("\n")
+    try:
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+    except OSError:
+        return False
+    return True
+
+
+def sync_month_links_all():
+    """为所有有在读记录的书页维护「在读月份」区块（当前月 + 历史月全覆盖）"""
+    all_books = load_all_month_books()
+    n = 0
+    for short, rec in all_books.items():
+        path = find_note(short, rec.get("title"))
+        if path is None:
+            continue
+        if upsert_month_links(path, rec["months"]):
+            n += 1
+    print(f"已更新 {n} 本书页的「在读月份」")
+    return n
 
 
 if __name__ == "__main__":
