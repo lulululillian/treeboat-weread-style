@@ -111,8 +111,8 @@ def new_note_frontmatter(title, author, cover, status, finish_date=""):
 author: "{author}"
 publication_year:
 publisher: ""
-genre: []
-douban_id: ""
+genre: ""
+isbn: ""
 cover: {cover}
 tags:
   - 书籍
@@ -123,11 +123,11 @@ start_date:
 finish_date: {finish_date}
 rating:
 plan: ""
-taste_genre: ""
+taste_genre:
 taste_core: []
 taste_style: []
-taste_pace: ""
-taste_region: ""
+taste_pace:
+taste_region:
 taste_verified: false
 ---
 
