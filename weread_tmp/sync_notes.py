@@ -99,7 +99,9 @@ def build_mark_section(book, sync_date, months):
             lines.append(f"### {title}")
             lines.append("")
             for q in quotes:
-                lines.append(f"> {q}")
+                # 划线原文可能含换行（连续对话/多段），markdown 引用块需每行都加 > 才能保持连续
+                for ln in q.replace("\r\n", "\n").replace("\r", "\n").split("\n"):
+                    lines.append("> " + ln.rstrip())
                 lines.append("")
     return "\n".join(lines) + "\n\n" + END_MARK
 
