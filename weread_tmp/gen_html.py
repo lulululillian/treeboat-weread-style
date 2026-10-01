@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """微信读书阅读统计 — 可交互独立 HTML 生成器（周/月/天三视图 tab 筛选）"""
-import json, os, datetime, urllib.parse
+import json, os, re, datetime, urllib.parse
 import sys
 _HERE = os.path.dirname(os.path.abspath(__file__))
 if _HERE not in sys.path:
@@ -304,13 +304,33 @@ def gallery_modal_html():
         cov = b.get("cover", "")
         if not cov:
             continue
+        disp = b.get("title") or b.get("short") or "未知"
+        # 出版社：从书架笔记 frontmatter 读（现有数据，读不到留空）
+        pub = ""
+        try:
+            np = os.path.join(config.shelf_dir(), disp + ".md")
+            if os.path.exists(np):
+                with open(np, encoding="utf-8") as f:
+                    head = f.read(1200)
+                m = re.search(r'^publisher\s*:\s*(.+)$', head, re.M)
+                if m:
+                    pub = m.group(1).strip().strip('"\'')
+        except Exception:
+            pass
+        # 当月读过该书的天（day_book_map 值为书名全名）
+        days = sorted(d for d, tls in day_book_map.items() if disp in tls)
         items.append({
-            "t": b.get("title") or b.get("short") or "未知",
+            "t": disp,
             "a": b.get("author", "") or "",
             "c": cov,
             "b": b.get("bookId", ""),
             "f": 1 if b.get("finished") else 0,
             "s": b.get("sec", 0),
+            "p": pub,
+            "d": days,
+            "l": ob_uri(disp),
+            "m": b.get("month_marks", 0),
+            "i": b.get("ideas", 0),
         })
     data_json = json.dumps(items, ensure_ascii=False)
     # 避免注入：< > & ` ${ 全部转成 \u 转义（JSON 合法，HTML/JS 安全）
@@ -332,13 +352,22 @@ def gallery_modal_html():
             f'<button data-mode="flat" class="wr-gmode" style="background:var(--wr-main);color:var(--wr-white);border:none;padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">平铺</button>'
             f'<button data-mode="shelf" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">书架</button>'
             f'<button data-mode="spine" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">书脊</button>'
+            f'<button data-mode="achv" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">成就</button>'
             f'</div>'
             f'<button id="wr-gallery-close" style="border:none;background:var(--wr-bg);color:var(--wr-main);width:30px;height:30px;'
             f'border-radius:50%;font-size:16px;cursor:pointer;line-height:1;flex-shrink:0">×</button></div></div>'
             f'<div id="wr-gallery-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));'
             f'gap:24px 20px;margin-top:18px"></div>'
-            f'<div id="wr-gallery-data" style="display:none">{data_json}</div>'
-            f'</div></div>')
+            f'<div id="wr-gallery-data" style="display:none" data-days="{N_DAYS}" data-title="{esc(TITLE)}" data-year="{YEAR}" data-month="{MONTH}">{data_json}</div>'
+            f'</div></div>'
+            # 单书详情弹层（画廊/封面条内点击书或封面弹出；右上角可跳书页笔记）
+            f'<div id="wr-book-detail-mask" style="position:fixed;inset:0;background:rgba(20,26,40,.6);'
+            f'backdrop-filter:blur(10px);z-index:10000;display:flex;align-items:center;justify-content:center;'
+            f'opacity:0;visibility:hidden;transition:opacity .3s ease,visibility .3s ease">'
+            f'<div id="wr-book-detail-panel" style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:20px;'
+            f'max-width:430px;width:90vw;max-height:88vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.4);'
+            f'transform:translateY(30px) scale(.96);transition:transform .35s cubic-bezier(.2,.9,.3,1.15);'
+            f'padding:22px 24px;position:relative"></div></div>')
 
 def cover_gallery_html():
     # 本月在读书籍封面横向画廊（无背景卡样式，带自动滚动动效；按时长降序，缺失封面跳过）
@@ -351,7 +380,7 @@ def cover_gallery_html():
         tstr = fmt_sec(b.get("sec", 0))
         cards.append(
             f'<div style="flex:0 0 auto;width:96px;text-align:center">'
-            f'<a href="{ob_uri(disp)}" data-note="{esc(disp)}" style="text-decoration:none;display:block;cursor:pointer" title="打开笔记：{esc(disp)}">'
+            f'<a href="{ob_uri(disp)}" data-note="{esc(disp)}" data-t="{esc(disp)}" style="text-decoration:none;display:block;cursor:pointer" title="打开笔记：{esc(disp)}">'
             f'<img src="{esc(cov)}" alt="{esc(disp)}" loading="lazy" '
             f'style="width:96px;height:128px;object-fit:cover;border-radius:10px;'
             f'border:0.5px solid #E6D4C0;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08);pointer-events:none"/>'

@@ -446,6 +446,12 @@ _GALLERY_JS = """
   const dataEl = mask.querySelector('#wr-gallery-data');
   const modeBtns = Array.prototype.slice.call(mask.querySelectorAll('.wr-gmode'));
   let mode = 'flat', items = [], animSeq = 0;
+  const nDays = parseInt(dataEl.getAttribute('data-days') || '31', 10);
+  const galTitle = dataEl.getAttribute('data-title') || '';
+  const galYear = parseInt(dataEl.getAttribute('data-year') || '0', 10);
+  const galMonth = parseInt(dataEl.getAttribute('data-month') || '0', 10);
+  const dMask = root.querySelector('#wr-book-detail-mask');
+  const dPanel = dMask ? dMask.querySelector('#wr-book-detail-panel') : null;
 
   // 书脊配色：封面取主色，CORS/加载失败回退固定色板
   var PALETTE = ['#5B4A52','#6E5D8C','#8C6D4A','#4A6E68','#7A4E3E','#55637E',
@@ -477,6 +483,63 @@ _GALLERY_JS = """
     cell.style.transition = 'opacity .5s ease,transform .5s ease';
     setTimeout(function(){ cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40 + n*55);
   }
+  function fmtSec(s){
+    var m = Math.round((s||0)/60);
+    if (m >= 60){ var h = Math.floor(m/60), mm = m%60; return mm ? h+'小时'+String(mm).padStart(2,'0')+'分' : h+'小时'; }
+    return m+'分钟';
+  }
+  function escHtml(s){
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  // 点击书/封面 → 弹出单书详情（右上角"打开笔记"跳书页）
+  function showBookDetailByTitle(t){
+    if (!dMask || !dPanel) return;
+    if (!items.length){ try { items = JSON.parse(dataEl.textContent); } catch(e){} }
+    var it = null;
+    for (var i=0;i<items.length;i++){ if (items[i].t === t){ it = items[i]; break; } }
+    if (!it) return;
+    var first = (galYear>0 && galMonth>0) ? new Date(galYear, galMonth-1, 1).getDay() : 0;
+    var wd = ['日','一','二','三','四','五','六'];
+    var cells = '';
+    for (var k=0;k<wd.length;k++){ cells += '<div style="font-size:10px;color:var(--wr-sub);text-align:center;padding:2px 0">'+wd[k]+'</div>'; }
+    for (var k2=0;k2<first;k2++){ cells += '<div></div>'; }
+    var now = new Date();
+    var tIdx = (now.getFullYear()===galYear && now.getMonth()+1===galMonth) ? now.getDate() : 0;
+    var readSet = {};
+    (it.d||[]).forEach(function(d){ readSet[d]=1; });
+    for (var d=1; d<=nDays; d++){
+      var on = readSet[d] ? 1 : 0;
+      var isT = d===tIdx;
+      cells += '<div style="font-size:10px;color:'+(on?'var(--wr-white)':'var(--wr-main)')+';background:'+(on?'var(--wr-main)':'var(--wr-bg)')+';'
+        + 'border-radius:5px;text-align:center;padding:3px 0;'+(isT?'box-shadow:inset 0 0 0 1.5px var(--wr-main);':'')+'">'+d+'</div>';
+    }
+    dPanel.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">'
+      + '<div style="font-size:16px;font-weight:600;color:var(--wr-main);padding-right:8px">'+escHtml(it.t)+'</div>'
+      + '<div style="display:flex;align-items:center;gap:8px;flex-shrink:0">'
+      + '<a href="'+escHtml(it.l)+'" data-note="'+escHtml(it.t)+'" style="text-decoration:none;background:var(--wr-main);color:var(--wr-white);padding:5px 12px;border-radius:999px;font-size:11px;cursor:pointer" title="打开笔记">打开笔记</a>'
+      + '<button id="wr-book-detail-close" style="border:none;background:var(--wr-bg);color:var(--wr-main);width:28px;height:28px;border-radius:50%;font-size:14px;cursor:pointer;line-height:1">×</button></div></div>'
+      + '<div style="display:flex;gap:14px;align-items:flex-start">'
+      + '<img src="'+escHtml(it.c)+'" alt="'+escHtml(it.t)+'" style="width:104px;height:140px;object-fit:cover;border-radius:10px;box-shadow:0 8px 18px rgba(0,0,0,.18);flex-shrink:0;background:var(--wr-line)"/>'
+      + '<div style="flex:1;min-width:0">'
+      + '<div style="font-size:12px;color:var(--wr-sub)">'+escHtml(it.a||'')+'</div>'
+      + (it.p ? '<div style="font-size:11px;color:var(--wr-sub);margin-top:2px">'+escHtml(it.p)+'</div>' : '')
+      + '<div style="margin-top:8px"><span style="font-size:10px;font-weight:600;color:'+(it.f?'var(--wr-main)':'var(--wr-sub)')+';border:1px solid var(--wr-line);padding:2px 8px;border-radius:999px">'+(it.f?'已读完':'在读')+'</span></div>'
+      + '<div style="display:flex;gap:14px;margin-top:12px;padding-top:10px;border-top:1px dashed var(--wr-line)">'
+      + '<div style="text-align:center"><div style="font-size:13px;font-weight:600;color:var(--wr-main)">'+fmtSec(it.s)+'</div><div style="font-size:10px;color:var(--wr-sub);margin-top:2px">本月时长</div></div>'
+      + '<div style="text-align:center"><div style="font-size:13px;font-weight:600;color:var(--wr-main)">'+(it.m||0)+'</div><div style="font-size:10px;color:var(--wr-sub);margin-top:2px">本月划线</div></div>'
+      + '<div style="text-align:center"><div style="font-size:13px;font-weight:600;color:var(--wr-main)">'+(it.i||0)+'</div><div style="font-size:10px;color:var(--wr-sub);margin-top:2px">想法</div></div>'
+      + '</div></div></div>'
+      + '<div style="margin-top:14px"><div style="font-size:11px;color:var(--wr-sub);margin-bottom:6px">'+escHtml(galTitle)+' · 打卡日历（本月读过 '+(it.d||[]).length+' 天）</div>'
+      + '<div style="display:grid;grid-template-columns:repeat(7,1fr);gap:3px">'+cells+'</div></div>';
+    dPanel.querySelector('#wr-book-detail-close').addEventListener('click', closeDetail);
+    dMask.style.visibility='visible'; dMask.style.opacity='1';
+    dPanel.style.transform='translateY(0) scale(1)';
+  }
+  function closeDetail(){
+    if (!dMask || !dPanel) return;
+    dMask.style.opacity='0'; dMask.style.visibility='hidden';
+    dPanel.style.transform='translateY(30px) scale(.96)';
+  }
 
   // 1) 平铺封面墙
   function renderFlat(){
@@ -499,6 +562,7 @@ _GALLERY_JS = """
         img.style.transform='translateY(-5px) scale(1.04)'; img.style.boxShadow='0 16px 32px rgba(0,0,0,.26)';
       });
       cell.addEventListener('mouseleave', function(){ img.style.transform=''; img.style.boxShadow=''; });
+      cell.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
       grid.appendChild(cell);
       enter(cell);
     });
@@ -543,6 +607,7 @@ _GALLERY_JS = """
         img.style.transform='translateY(-7px) scale(1.03)'; img.style.boxShadow='0 14px 26px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.08)';
       });
       cell.addEventListener('mouseleave', function(){ img.style.transform=''; img.style.boxShadow='0 7px 16px rgba(0,0,0,.24), inset 0 0 0 1px rgba(255,255,255,.08)'; });
+      cell.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
       row.appendChild(cell); enter(cell);
     });
   }
@@ -614,8 +679,58 @@ _GALLERY_JS = """
       cell.addEventListener('mouseleave', function(){
         spine.style.transform=''; spine.style.boxShadow='0 5px 12px rgba(0,0,0,.22)';
       });
+      cell.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
       row.appendChild(cell); enter(cell);
     }, 3, '26px 24px 0');
+  }
+
+  // 4) 成就模式：小票式图书列表（书名 + 作者/出版社 · 已读完/在读 + 时长），点击行弹详情
+  function renderAchv(){
+    grid.style.cssText = 'display:flex;justify-content:center;margin-top:18px';
+    var list = spineItems();
+    var total = 0;
+    list.forEach(function(b){ total += (b.s||0); });
+    const ticket = document.createElement('div');
+    ticket.style.cssText = 'width:100%;max-width:540px;background:var(--wr-white);border:1px dashed var(--wr-line);'
+      + 'border-radius:10px;padding:20px 24px 14px';
+    const head = document.createElement('div');
+    head.style.cssText = 'text-align:center;border-bottom:1px dashed var(--wr-line);padding-bottom:12px;margin-bottom:8px';
+    head.innerHTML = '<div style="font-size:15px;font-weight:600;color:var(--wr-main);letter-spacing:1px">本月成就 · 图书</div>'
+      + '<div style="font-size:11px;color:var(--wr-sub);margin-top:4px">'+escHtml(galTitle)+' · 共 '+list.length+' 本</div>';
+    ticket.appendChild(head);
+    list.forEach(function(it){
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;gap:12px;'
+        + 'padding:9px 2px;border-bottom:1px dashed var(--wr-line);cursor:pointer;transition:background .2s ease';
+      const left = document.createElement('div');
+      left.style.cssText = 'min-width:0;flex:1';
+      const tn = document.createElement('div');
+      tn.textContent = it.t;
+      tn.style.cssText = 'font-size:13px;font-weight:600;color:var(--wr-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      const meta = document.createElement('div');
+      meta.textContent = [it.a, it.p].filter(Boolean).join(' / ') || '未知作者';
+      meta.style.cssText = 'font-size:11px;color:var(--wr-sub);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      left.appendChild(tn); left.appendChild(meta);
+      const right = document.createElement('div');
+      right.style.cssText = 'text-align:right;flex-shrink:0';
+      const st = document.createElement('div');
+      st.textContent = it.f ? '已读完' : '在读';
+      st.style.cssText = 'font-size:10px;font-weight:600;color:' + (it.f ? 'var(--wr-main)' : 'var(--wr-sub)');
+      const dur = document.createElement('div');
+      dur.textContent = fmtSec(it.s);
+      dur.style.cssText = 'font-size:12px;color:var(--wr-main);margin-top:2px;font-variant-numeric:tabular-nums';
+      right.appendChild(st); right.appendChild(dur);
+      row.appendChild(left); row.appendChild(right);
+      row.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
+      row.addEventListener('mouseenter', function(){ row.style.background='var(--wr-bg)'; });
+      row.addEventListener('mouseleave', function(){ row.style.background=''; });
+      ticket.appendChild(row);
+    });
+    const foot = document.createElement('div');
+    foot.style.cssText = 'display:flex;justify-content:space-between;font-size:11px;color:var(--wr-sub);padding-top:10px';
+    foot.innerHTML = '<span>合计 '+list.length+' 本</span><span>累计阅读 '+fmtSec(total)+'</span>';
+    ticket.appendChild(foot);
+    grid.appendChild(ticket);
   }
 
   function setMode(m){
@@ -629,6 +744,7 @@ _GALLERY_JS = """
     });
     if (m === 'shelf') renderShelf();
     else if (m === 'spine') renderSpine();
+    else if (m === 'achv') renderAchv();
     else renderFlat();
   }
 
@@ -653,9 +769,26 @@ _GALLERY_JS = """
   modeBtns.forEach(function(b){
     b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); });
   });
+  // 主页面封面滚动条：点击封面 → 弹该书详情（右上角"打开笔记"跳书页，覆盖旧的直接跳转逻辑）
+  const coverStrip = root.querySelector('#wr-cover-gallery');
+  if (coverStrip && !coverStrip.dataset.wrBound){
+    coverStrip.dataset.wrBound = '1';
+    coverStrip.addEventListener('click', function(e){
+      const a = e.target && e.target.closest ? e.target.closest('a[data-t]') : null;
+      if (!a) return;
+      e.preventDefault();
+      e.stopPropagation();  // 阻止主 JS 的 document 级直接打开书页逻辑
+      showBookDetailByTitle(a.getAttribute('data-t'));
+    });
+  }
   mask.querySelector('#wr-gallery-close').addEventListener('click', close);
   mask.addEventListener('click', function(e){ if (e.target === mask) close(); });
-  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+  if (dMask) dMask.addEventListener('click', function(e){ if (e.target === dMask) closeDetail(); });
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    if (dMask && dMask.style.visibility === 'visible') closeDetail();
+    else close();
+  });
 })();
 """
 
