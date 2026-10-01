@@ -686,50 +686,80 @@ _GALLERY_JS = """
 
   // 4) 成就模式：小票式图书列表（书名 + 作者/出版社 · 已读完/在读 + 时长），点击行弹详情
   function renderAchv(){
-    grid.style.cssText = 'display:flex;justify-content:center;margin-top:18px';
-    var list = spineItems();
-    var total = 0;
+    grid.style.cssText = 'display:flex;justify-content:center;align-items:flex-start;margin-top:18px;padding-bottom:8px';
+    const list = spineItems();
+    let total = 0;
     list.forEach(function(b){ total += (b.s||0); });
+    const paper = '#f6f1e4';
+    const ink = '#2d2a24';
+    const inkSoft = 'rgba(45,42,36,.68)';
+    const dotStr = '· · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·';
+    const mono = "'Courier New', 'Courier', monospace";
+
     const ticket = document.createElement('div');
-    ticket.style.cssText = 'width:100%;max-width:540px;background:var(--wr-white);border:1px dashed var(--wr-line);'
-      + 'border-radius:10px;padding:20px 24px 14px';
+    ticket.style.cssText = 'position:relative;width:100%;max-width:460px;background:' + paper + ';color:' + ink + ';'
+      + 'font-family:' + mono + ';padding:18px 26px 26px;box-shadow:0 8px 28px rgba(0,0,0,.16);'
+      + 'background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.014) 0 1px,transparent 1px 3px),'
+      + 'repeating-linear-gradient(90deg,rgba(0,0,0,.008) 0 1px,transparent 1px 5px);';
+    // 顶部锯齿撕口
+    const topNotch = document.createElement('div');
+    topNotch.style.cssText = 'position:absolute;left:0;right:0;top:0;height:9px;'
+      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
+      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:top;';
+    // 底部锯齿撕口
+    const bottomNotch = document.createElement('div');
+    bottomNotch.style.cssText = 'position:absolute;left:0;right:0;bottom:0;height:9px;'
+      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
+      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:bottom;';
+    ticket.appendChild(topNotch);
+    ticket.appendChild(bottomNotch);
+
+    // 抬头：店名 + 日期 + 编号
     const head = document.createElement('div');
-    head.style.cssText = 'text-align:center;border-bottom:1px dashed var(--wr-line);padding-bottom:12px;margin-bottom:8px';
-    head.innerHTML = '<div style="font-size:15px;font-weight:600;color:var(--wr-main);letter-spacing:1px">本月成就 · 图书</div>'
-      + '<div style="font-size:11px;color:var(--wr-sub);margin-top:4px">'+escHtml(galTitle)+' · 共 '+list.length+' 本</div>';
+    head.style.cssText = 'text-align:center;padding:2px 0 10px';
+    head.innerHTML = '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px">* * * * * * * * * *</div>'
+      + '<div style="font-size:17px;font-weight:700;letter-spacing:2px;margin-top:5px">舟读 · 阅读小票</div>'
+      + '<div style="font-size:12px;margin-top:6px">' + escHtml(galTitle) + ' · 共 ' + list.length + ' 本</div>'
+      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:4px">No.' + (galYear || '----') + '-' + String(galMonth || 0).padStart(2,'0') + '</div>'
+      + '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px;margin-top:8px">- - - - - - - - - -</div>';
     ticket.appendChild(head);
+
+    // 明细行：书名 + 点线填充 + 时长，副行状态/作者/出版社
     list.forEach(function(it){
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;justify-content:space-between;align-items:baseline;gap:12px;'
-        + 'padding:9px 2px;border-bottom:1px dashed var(--wr-line);cursor:pointer;transition:background .2s ease';
-      const left = document.createElement('div');
-      left.style.cssText = 'min-width:0;flex:1';
-      const tn = document.createElement('div');
-      tn.textContent = it.t;
-      tn.style.cssText = 'font-size:13px;font-weight:600;color:var(--wr-main);overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      const meta = document.createElement('div');
-      meta.textContent = [it.a, it.p].filter(Boolean).join(' / ') || '未知作者';
-      meta.style.cssText = 'font-size:11px;color:var(--wr-sub);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
-      left.appendChild(tn); left.appendChild(meta);
-      const right = document.createElement('div');
-      right.style.cssText = 'text-align:right;flex-shrink:0';
-      const st = document.createElement('div');
-      st.textContent = it.f ? '已读完' : '在读';
-      st.style.cssText = 'font-size:10px;font-weight:600;color:' + (it.f ? 'var(--wr-main)' : 'var(--wr-sub)');
-      const dur = document.createElement('div');
+      row.style.cssText = 'cursor:pointer;transition:background .2s ease;border-bottom:1px dashed rgba(45,42,36,.28)';
+      const line = document.createElement('div');
+      line.style.cssText = 'display:flex;align-items:baseline;padding:7px 4px 1px';
+      const title = document.createElement('span');
+      title.textContent = it.t;
+      title.style.cssText = 'flex-shrink:0;font-size:12px;font-weight:700;white-space:nowrap';
+      const dots = document.createElement('span');
+      dots.textContent = dotStr;
+      dots.style.cssText = 'flex:1;min-width:8px;overflow:hidden;white-space:nowrap;font-size:10px;color:rgba(45,42,36,.45);margin:0 4px;text-align:right';
+      const dur = document.createElement('span');
       dur.textContent = fmtSec(it.s);
-      dur.style.cssText = 'font-size:12px;color:var(--wr-main);margin-top:2px;font-variant-numeric:tabular-nums';
-      right.appendChild(st); right.appendChild(dur);
-      row.appendChild(left); row.appendChild(right);
+      dur.style.cssText = 'flex-shrink:0;font-size:11px;font-weight:700;white-space:nowrap';
+      line.appendChild(title); line.appendChild(dots); line.appendChild(dur);
+      const meta = document.createElement('div');
+      const metaParts = [(it.f ? '[已读完]' : '[在读]')].concat([it.a, it.p].filter(Boolean));
+      meta.textContent = '  ' + metaParts.join(' · ');
+      meta.style.cssText = 'font-size:10px;color:' + inkSoft + ';padding:1px 4px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      row.appendChild(line); row.appendChild(meta);
       row.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
-      row.addEventListener('mouseenter', function(){ row.style.background='var(--wr-bg)'; });
-      row.addEventListener('mouseleave', function(){ row.style.background=''; });
+      row.addEventListener('mouseenter', function(){ row.style.background = 'rgba(0,0,0,.045)'; });
+      row.addEventListener('mouseleave', function(){ row.style.background = ''; });
       ticket.appendChild(row);
     });
+
+    // 尾部：合计 + 感谢语
     const foot = document.createElement('div');
-    foot.style.cssText = 'display:flex;justify-content:space-between;font-size:11px;color:var(--wr-sub);padding-top:10px';
-    foot.innerHTML = '<span>合计 '+list.length+' 本</span><span>累计阅读 '+fmtSec(total)+'</span>';
+    foot.style.cssText = 'padding:10px 4px 2px;text-align:center';
+    foot.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:1px">'
+      + '<span>合计 ' + list.length + ' 本</span><span>累计 ' + fmtSec(total) + '</span></div>'
+      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:8px">感谢本月与书为伴，下月再见</div>'
+      + '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px;margin-top:8px">* * * * * * * * * *</div>';
     ticket.appendChild(foot);
+
     grid.appendChild(ticket);
   }
 
