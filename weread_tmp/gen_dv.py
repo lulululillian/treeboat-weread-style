@@ -767,8 +767,25 @@ _GALLERY_JS = """
     else renderAchvClassic();
   }
 
-  // 出票机背景：机器在上、小票从出票口吐出
+  // 出票机背景：机器与票的衔接（经典/粉彩/印章=机器在上、票从出票口向下吐出；复古=机器在下作背景、纸从纸架向上出）
   function achvMount(grid, ticket, style){
+    const up = (style === 'vintage');
+    if (up){
+      // 复古打字机：机器放大、只露出上半部（纸架+纸头），票底压着纸架，视觉上纸从机器里向上抽出
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'position:relative;margin:0 auto;overflow:hidden;';
+      const m = document.createElement('img');
+      m.src = MACHINES[style] || '';
+      m.style.cssText = 'position:absolute;left:50%;bottom:-368px;transform:translateX(-50%);'
+        + 'width:158%;max-width:720px;height:auto;object-fit:contain;z-index:1;'
+        + 'filter:drop-shadow(0 -12px 18px rgba(0,0,0,.12));';
+      m.onerror = function(){ m.style.display = 'none'; };
+      wrap.appendChild(m);
+      ticket.style.position = 'relative'; ticket.style.zIndex = '2';
+      wrap.appendChild(ticket);
+      grid.appendChild(wrap);
+      return;
+    }
     const wrap = document.createElement('div');
     wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;margin:0 auto';
     const m = document.createElement('img');
