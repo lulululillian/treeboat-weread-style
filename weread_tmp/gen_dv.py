@@ -445,7 +445,7 @@ _GALLERY_JS = """
   const grid = mask.querySelector('#wr-gallery-grid');
   const dataEl = mask.querySelector('#wr-gallery-data');
   const modeBtns = Array.prototype.slice.call(mask.querySelectorAll('.wr-gmode'));
-  let mode = 'flat', items = [], animSeq = 0, spineLayout = 'h';
+  let mode = 'flat', items = [], animSeq = 0, spineLayout = 'h', achvStyle = 'classic';
   const nDays = parseInt(dataEl.getAttribute('data-days') || '31', 10);
   const galTitle = dataEl.getAttribute('data-title') || '';
   const galYear = parseInt(dataEl.getAttribute('data-year') || '0', 10);
@@ -697,7 +697,7 @@ _GALLERY_JS = """
       const thick = 0.35 + 0.65 * hashF(it.b || (it.t + it.a));
       const w = 170 + Math.round(thick * 110);   // 170~280px，越长越"高"
       const h = 22 + Math.round(thick * 20);     // 22~42px，越厚越高
-      const off = Math.round((hashF((it.b || it.t) + '~o') - 0.5) * 56);   // 左右交错 ±28px，每本书稳定一致
+      const off = Math.round((Math.random() - 0.5) * 84);   // 随机左右交错 ±42px，每本偏移量不同、位置每次不定
       const cell = document.createElement('div');
       cell.title = it.t;
       cell.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;margin-left:' + off + 'px;cursor:pointer;'
@@ -754,56 +754,32 @@ _GALLERY_JS = """
 
   // 4) 成就模式：小票式图书列表（书名 + 作者/出版社 · 已读完/在读 + 时长），点击行弹详情
   function renderAchv(){
+    if (achvStyle === 'pink') renderAchvPink();
+    else if (achvStyle === 'vintage') renderAchvVintage();
+    else if (achvStyle === 'stamp') renderAchvStamp();
+    else renderAchvClassic();
+  }
+
+  // 小票通用：行交互 + 明细数据
+  function achvBase(){
     grid.style.cssText = 'display:flex;justify-content:center;align-items:flex-start;margin-top:18px;padding-bottom:8px';
     const list = spineItems();
     let total = 0;
     list.forEach(function(b){ total += (b.s||0); });
-    const paper = '#f6f1e4';
-    const ink = '#2d2a24';
-    const inkSoft = 'rgba(45,42,36,.68)';
-    const dotStr = '· · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·';
-    const mono = "'Courier New', 'Courier', monospace";
-
-    const ticket = document.createElement('div');
-    ticket.style.cssText = 'position:relative;width:100%;max-width:460px;background:' + paper + ';color:' + ink + ';'
-      + 'font-family:' + mono + ';padding:18px 26px 26px;box-shadow:0 8px 28px rgba(0,0,0,.16);'
-      + 'background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.014) 0 1px,transparent 1px 3px),'
-      + 'repeating-linear-gradient(90deg,rgba(0,0,0,.008) 0 1px,transparent 1px 5px);';
-    // 顶部锯齿撕口
-    const topNotch = document.createElement('div');
-    topNotch.style.cssText = 'position:absolute;left:0;right:0;top:0;height:9px;'
-      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
-      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:top;';
-    // 底部锯齿撕口
-    const bottomNotch = document.createElement('div');
-    bottomNotch.style.cssText = 'position:absolute;left:0;right:0;bottom:0;height:9px;'
-      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
-      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:bottom;';
-    ticket.appendChild(topNotch);
-    ticket.appendChild(bottomNotch);
-
-    // 抬头：店名 + 日期 + 编号
-    const head = document.createElement('div');
-    head.style.cssText = 'text-align:center;padding:2px 0 10px';
-    head.innerHTML = '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px">* * * * * * * * * *</div>'
-      + '<div style="font-size:17px;font-weight:700;letter-spacing:2px;margin-top:5px">舟读 · 阅读小票</div>'
-      + '<div style="font-size:12px;margin-top:6px">' + escHtml(galTitle) + ' · 共 ' + list.length + ' 本</div>'
-      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:4px">No.' + (galYear || '----') + '-' + String(galMonth || 0).padStart(2,'0') + '</div>'
-      + '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px;margin-top:8px">- - - - - - - - - -</div>';
-    ticket.appendChild(head);
-
-    // 明细行：书名 + 点线填充 + 时长，副行状态/作者/出版社
+    return { list: list, total: total };
+  }
+  function achvRows(ticket, list, paper, ink, inkSoft, style){
     list.forEach(function(it){
       const row = document.createElement('div');
-      row.style.cssText = 'cursor:pointer;transition:background .2s ease;border-bottom:1px dashed rgba(45,42,36,.28)';
+      row.style.cssText = 'cursor:pointer;transition:background .2s ease;border-bottom:1px dashed ' + (style === 'stamp' ? 'rgba(17,17,17,.22)' : inkSoft);
       const line = document.createElement('div');
       line.style.cssText = 'display:flex;align-items:baseline;padding:7px 4px 1px';
       const title = document.createElement('span');
       title.textContent = it.t;
       title.style.cssText = 'flex-shrink:0;font-size:12px;font-weight:700;white-space:nowrap';
       const dots = document.createElement('span');
-      dots.textContent = dotStr;
-      dots.style.cssText = 'flex:1;min-width:8px;overflow:hidden;white-space:nowrap;font-size:10px;color:rgba(45,42,36,.45);margin:0 4px;text-align:right';
+      dots.textContent = '· · · · · · · · · · · · · · · · · · · · · · · · · · · · · ·';
+      dots.style.cssText = 'flex:1;min-width:8px;overflow:hidden;white-space:nowrap;font-size:10px;color:' + inkSoft + ';margin:0 4px;text-align:right';
       const dur = document.createElement('span');
       dur.textContent = fmtSec(it.s);
       dur.style.cssText = 'flex-shrink:0;font-size:11px;font-weight:700;white-space:nowrap';
@@ -814,12 +790,46 @@ _GALLERY_JS = """
       meta.style.cssText = 'font-size:10px;color:' + inkSoft + ';padding:1px 4px 5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
       row.appendChild(line); row.appendChild(meta);
       row.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
-      row.addEventListener('mouseenter', function(){ row.style.background = 'rgba(0,0,0,.045)'; });
+      row.addEventListener('mouseenter', function(){ row.style.background = style === 'pink' ? 'rgba(196,69,111,.06)' : 'rgba(0,0,0,.045)'; });
       row.addEventListener('mouseleave', function(){ row.style.background = ''; });
       ticket.appendChild(row);
     });
+  }
 
-    // 尾部：合计 + 感谢语
+  // 小票①：经典热敏纸（米色 + 噪点 + 等宽点线 + 锯齿）
+  function renderAchvClassic(){
+    const b = achvBase();
+    const list = b.list, total = b.total;
+    const paper = '#f6f1e4';
+    const ink = '#2d2a24';
+    const inkSoft = 'rgba(45,42,36,.68)';
+    const mono = "'Courier New', 'Courier', monospace";
+
+    const ticket = document.createElement('div');
+    ticket.style.cssText = 'position:relative;width:100%;max-width:460px;background:' + paper + ';color:' + ink + ';'
+      + 'font-family:' + mono + ';padding:18px 26px 26px;box-shadow:0 8px 28px rgba(0,0,0,.16);'
+      + 'background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.014) 0 1px,transparent 1px 3px),'
+      + 'repeating-linear-gradient(90deg,rgba(0,0,0,.008) 0 1px,transparent 1px 5px);';
+    const topNotch = document.createElement('div');
+    topNotch.style.cssText = 'position:absolute;left:0;right:0;top:0;height:9px;'
+      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
+      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:top;';
+    const bottomNotch = document.createElement('div');
+    bottomNotch.style.cssText = 'position:absolute;left:0;right:0;bottom:0;height:9px;'
+      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
+      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:bottom;';
+    ticket.appendChild(topNotch);
+    ticket.appendChild(bottomNotch);
+
+    const head = document.createElement('div');
+    head.style.cssText = 'text-align:center;padding:2px 0 10px';
+    head.innerHTML = '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px">* * * * * * * * * *</div>'
+      + '<div style="font-size:17px;font-weight:700;letter-spacing:2px;margin-top:5px">舟读 · 阅读小票</div>'
+      + '<div style="font-size:12px;margin-top:6px">' + escHtml(galTitle) + ' · 共 ' + list.length + ' 本</div>'
+      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:4px">No.' + (galYear || '----') + '-' + String(galMonth || 0).padStart(2,'0') + '</div>'
+      + '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px;margin-top:8px">- - - - - - - - - -</div>';
+    ticket.appendChild(head);
+    achvRows(ticket, list, paper, ink, inkSoft, 'classic');
     const foot = document.createElement('div');
     foot.style.cssText = 'padding:10px 4px 2px;text-align:center';
     foot.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:1px">'
@@ -827,7 +837,142 @@ _GALLERY_JS = """
       + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:8px">感谢本月与书为伴，下月再见</div>'
       + '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px;margin-top:8px">* * * * * * * * * *</div>';
     ticket.appendChild(foot);
+    grid.appendChild(ticket);
+  }
 
+  // 小票②：粉彩主题（参考图1：品牌 + emoji 图标行 + ITEM/PRICE 两列 + 标语 + 条形码）
+  function renderAchvPink(){
+    const b = achvBase();
+    const list = b.list, total = b.total;
+    const paper = '#FFF6F9';
+    const ink = '#C4456F';
+    const inkSoft = 'rgba(196,69,111,.6)';
+    const mono = "'Courier New', 'Courier', monospace";
+
+    const ticket = document.createElement('div');
+    ticket.style.cssText = 'position:relative;width:100%;max-width:460px;background:' + paper + ';color:' + ink + ';'
+      + 'font-family:' + mono + ';padding:18px 26px 26px;box-shadow:0 8px 28px rgba(0,0,0,.14);'
+      + 'background-image:repeating-linear-gradient(0deg,rgba(196,69,111,.018) 0 1px,transparent 1px 3px);';
+    const topNotch = document.createElement('div');
+    topNotch.style.cssText = 'position:absolute;left:0;right:0;top:0;height:9px;'
+      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
+      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:top;';
+    const bottomNotch = document.createElement('div');
+    bottomNotch.style.cssText = 'position:absolute;left:0;right:0;bottom:0;height:9px;'
+      + 'background:linear-gradient(135deg,transparent 7px,' + paper + ' 0),linear-gradient(45deg,transparent 7px,' + paper + ' 0);'
+      + 'background-size:14px 14px;background-repeat:repeat-x;background-position:bottom;';
+    ticket.appendChild(topNotch);
+    ticket.appendChild(bottomNotch);
+
+    const head = document.createElement('div');
+    head.style.cssText = 'text-align:center;padding:2px 0 8px';
+    head.innerHTML = '<div style="font-size:15px;letter-spacing:1px">舟读 · READ</div>'
+      + '<div style="font-size:16px;margin-top:4px;letter-spacing:4px">📖 ✏️ ☕ 📚 🌙</div>'
+      + '<div style="font-size:11px;margin-top:6px;letter-spacing:2px">' + escHtml(galTitle) + ' · 共 ' + list.length + ' 本</div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:10px;color:' + inkSoft + ';margin-top:8px;border-bottom:1px dashed ' + inkSoft + ';padding-bottom:5px">'
+      + '<span>ITEM</span><span>PRICE</span></div>';
+    ticket.appendChild(head);
+    achvRows(ticket, list, paper, ink, inkSoft, 'pink');
+    const foot = document.createElement('div');
+    foot.style.cssText = 'padding:9px 4px 2px;text-align:center';
+    foot.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:2px;border-top:1px dashed ' + inkSoft + ';padding-top:7px">'
+      + '<span>TOTAL</span><span>累计 ' + fmtSec(total) + '</span></div>'
+      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:9px;letter-spacing:1px">今天也要读点好的 ✨</div>'
+      + '<div style="width:170px;height:24px;margin:12px auto 0;opacity:.85;'
+      + 'background:repeating-linear-gradient(90deg,' + ink + ' 0 2px,transparent 2px 5px),'
+      + 'repeating-linear-gradient(90deg,' + ink + ' 0 1px,transparent 1px 3px,' + ink + ' 3px 5px,transparent 5px 8px);"></div>'
+      + '<div style="font-size:10px;letter-spacing:3px;margin-top:6px;color:' + inkSoft + '">舟读 · READ</div>';
+    ticket.appendChild(foot);
+    grid.appendChild(ticket);
+  }
+
+  // 小票③：复古打字机信纸（参考图2：顶部两侧小字 + 留白 + 底部品牌标语）
+  function renderAchvVintage(){
+    const b = achvBase();
+    const list = b.list, total = b.total;
+    const paper = '#FBF7EE';
+    const ink = '#3E3A33';
+    const inkSoft = 'rgba(62,58,51,.62)';
+    const mono = "'Courier New', 'Courier', monospace";
+
+    const ticket = document.createElement('div');
+    ticket.style.cssText = 'position:relative;width:100%;max-width:480px;background:' + paper + ';color:' + ink + ';'
+      + 'font-family:' + mono + ';padding:26px 34px 30px;box-shadow:0 8px 28px rgba(0,0,0,.12);'
+      + 'background-image:repeating-linear-gradient(0deg,rgba(0,0,0,.012) 0 1px,transparent 1px 5px);';
+
+    const topRow = document.createElement('div');
+    topRow.style.cssText = 'display:flex;justify-content:space-between;font-size:10px;color:' + inkSoft + ';letter-spacing:1px;padding-bottom:18px;border-bottom:1px solid rgba(62,58,51,.25)';
+    topRow.innerHTML = '<span>舟读 · ' + (galYear || '----') + '.' + String(galMonth || 0).padStart(2,'0') + '</span><span>reading note</span>';
+    ticket.appendChild(topRow);
+
+    const head = document.createElement('div');
+    head.style.cssText = 'text-align:center;padding:34px 0 26px';
+    head.innerHTML = '<div style="font-size:22px;font-weight:700;letter-spacing:8px">本月书单</div>'
+      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:10px;font-style:italic">the books of this month · ' + list.length + ' 本</div>';
+    ticket.appendChild(head);
+
+    achvRows(ticket, list, paper, ink, inkSoft, 'vintage');
+
+    const foot = document.createElement('div');
+    foot.style.cssText = 'text-align:center;padding:26px 0 4px;border-top:1px solid rgba(62,58,51,.25)';
+    foot.innerHTML = '<div style="font-size:12px;letter-spacing:4px">舟读书房</div>'
+      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:8px;font-style:italic">old memory of new time ....</div>'
+      + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:14px;letter-spacing:2px">合计 ' + list.length + ' 本 · 累计 ' + fmtSec(total) + '</div>';
+    ticket.appendChild(foot);
+    grid.appendChild(ticket);
+  }
+
+  // 小票④：白纸黑字印章版（参考图3：黑字曲目式 + 编号日期 + 红印章 + 版权小字）
+  function renderAchvStamp(){
+    const b = achvBase();
+    const list = b.list, total = b.total;
+    const paper = '#FFFFFF';
+    const ink = '#111111';
+    const inkSoft = 'rgba(17,17,17,.5)';
+    const mono = "'Courier New', 'Courier', monospace";
+    const red = 'rgba(224,51,51,.6)';
+
+    const ticket = document.createElement('div');
+    ticket.style.cssText = 'position:relative;width:100%;max-width:460px;background:' + paper + ';color:' + ink + ';'
+      + 'font-family:' + mono + ';padding:16px 26px 22px;box-shadow:0 8px 28px rgba(0,0,0,.16);';
+    const topNotch = document.createElement('div');
+    topNotch.style.cssText = 'position:absolute;left:0;right:0;top:0;height:12px;'
+      + 'background:linear-gradient(135deg,transparent 9px,' + paper + ' 0),linear-gradient(45deg,transparent 9px,' + paper + ' 0);'
+      + 'background-size:18px 18px;background-repeat:repeat-x;background-position:top;';
+    const bottomNotch = document.createElement('div');
+    bottomNotch.style.cssText = 'position:absolute;left:0;right:0;bottom:0;height:12px;'
+      + 'background:linear-gradient(135deg,transparent 9px,' + paper + ' 0),linear-gradient(45deg,transparent 9px,' + paper + ' 0);'
+      + 'background-size:18px 18px;background-repeat:repeat-x;background-position:bottom;';
+    ticket.appendChild(topNotch);
+    ticket.appendChild(bottomNotch);
+
+    // 红印章（右上角）
+    const stampOuter = document.createElement('div');
+    stampOuter.style.cssText = 'position:absolute;top:20px;right:26px;width:60px;height:60px;border-radius:50%;'
+      + 'border:2px solid ' + red + ';display:flex;align-items:center;justify-content:center;transform:rotate(-10deg);opacity:.9';
+    const stampInner = document.createElement('div');
+    stampInner.style.cssText = 'width:42px;height:42px;border-radius:50%;border:1px dashed ' + red + ';'
+      + 'display:flex;align-items:center;justify-content:center;color:' + red + ';font-size:9px;font-weight:700;letter-spacing:1px;text-align:center;line-height:1.5';
+    stampInner.textContent = '舟读\n已阅';
+    stampInner.style.whiteSpace = 'pre';
+    stampOuter.appendChild(stampInner);
+    ticket.appendChild(stampOuter);
+
+    const head = document.createElement('div');
+    head.style.cssText = 'text-align:center;padding:4px 0 6px';
+    head.innerHTML = '<div style="font-size:18px;font-weight:700;letter-spacing:3px">舟读 · 月度书单</div>'
+      + '<div style="font-size:8px;color:' + inkSoft + ';margin-top:3px;letter-spacing:3px">MONTHLY READING RECEIPT</div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:9px;color:' + inkSoft + ';margin-top:10px;border-bottom:1px solid rgba(17,17,17,.25);padding-bottom:5px">'
+      + '<span>' + escHtml(galTitle) + '</span><span>No.' + (galYear || '----') + '-' + String(galMonth || 0).padStart(2,'0') + '</span></div>';
+    ticket.appendChild(head);
+    achvRows(ticket, list, paper, ink, inkSoft, 'stamp');
+    const foot = document.createElement('div');
+    foot.style.cssText = 'padding:8px 4px 2px;text-align:center';
+    foot.innerHTML = '<div style="display:flex;justify-content:space-between;font-size:11px;font-weight:700;letter-spacing:2px;border-top:1px solid rgba(17,17,17,.25);padding-top:7px">'
+      + '<span>TOTAL [ MIN ]</span><span>' + fmtSec(total) + '</span></div>'
+      + '<div style="font-size:7px;color:' + inkSoft + ';margin-top:10px;letter-spacing:1px;line-height:1.6">'
+      + 'COPYRIGHT 2026 舟读 · 阅读看板 · POWERED BY WEREAD &amp; OBSIDIAN</div>';
+    ticket.appendChild(foot);
     grid.appendChild(ticket);
   }
 
@@ -846,6 +991,16 @@ _GALLERY_JS = """
       else { layoutBox.style.display = 'none'; }
       layoutBox.querySelectorAll('.wr-slayout').forEach(function(b){
         const on = b.getAttribute('data-layout') === spineLayout;
+        b.style.background = on ? 'var(--wr-main)' : 'transparent';
+        b.style.color = on ? 'var(--wr-white)' : 'var(--wr-sub)';
+      });
+    }
+    const aStyleBox = mask.querySelector('#wr-achv-style');
+    if (aStyleBox){
+      if (m === 'achv'){ aStyleBox.style.display = 'flex'; }
+      else { aStyleBox.style.display = 'none'; }
+      aStyleBox.querySelectorAll('.wr-astyle').forEach(function(b){
+        const on = b.getAttribute('data-style') === achvStyle;
         b.style.background = on ? 'var(--wr-main)' : 'transparent';
         b.style.color = on ? 'var(--wr-white)' : 'var(--wr-sub)';
       });
@@ -883,6 +1038,15 @@ _GALLERY_JS = """
       b.addEventListener('click', function(){
         spineLayout = b.getAttribute('data-layout');
         if (mode === 'spine'){ setMode('spine'); }
+      });
+    });
+  }
+  const aStyleBox = mask.querySelector('#wr-achv-style');
+  if (aStyleBox){
+    aStyleBox.querySelectorAll('.wr-astyle').forEach(function(b){
+      b.addEventListener('click', function(){
+        achvStyle = b.getAttribute('data-style');
+        if (mode === 'achv'){ setMode('achv'); }
       });
     });
   }
