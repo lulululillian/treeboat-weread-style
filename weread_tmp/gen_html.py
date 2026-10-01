@@ -352,7 +352,7 @@ def gallery_modal_html():
             f'<button data-mode="flat" class="wr-gmode" style="background:var(--wr-main);color:var(--wr-white);border:none;padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">平铺</button>'
             f'<button data-mode="shelf" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">书架</button>'
             f'<button data-mode="spine" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">书脊</button>'
-            f'<button data-mode="achv" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">成就</button>'
+            f'<button data-mode="achv" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">阅读小票</button>'
             f'</div>'
             f'<button id="wr-gallery-close" style="border:none;background:var(--wr-bg);color:var(--wr-main);width:30px;height:30px;'
             f'border-radius:50%;font-size:16px;cursor:pointer;line-height:1;flex-shrink:0">×</button></div></div>'
