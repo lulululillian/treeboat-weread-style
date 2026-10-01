@@ -445,7 +445,7 @@ _GALLERY_JS = """
   const grid = mask.querySelector('#wr-gallery-grid');
   const dataEl = mask.querySelector('#wr-gallery-data');
   const modeBtns = Array.prototype.slice.call(mask.querySelectorAll('.wr-gmode'));
-  let mode = 'flat', items = [], animSeq = 0;
+  let mode = 'flat', items = [], animSeq = 0, spineLayout = 'h';
   const nDays = parseInt(dataEl.getAttribute('data-days') || '31', 10);
   const galTitle = dataEl.getAttribute('data-title') || '';
   const galYear = parseInt(dataEl.getAttribute('data-year') || '0', 10);
@@ -628,60 +628,86 @@ _GALLERY_JS = """
   }
 
   // 3) 书脊模式：真实封面书脊——封面窄条 + 顶部书页白边 + 右侧厚度阴影 + 高光渐变 + 竖排书名
+  function spineNode(it, h, w){
+    const cell = document.createElement('div');
+    cell.title = it.t;
+    const spine = document.createElement('div');
+    spine.style.cssText = 'width:' + w + 'px;height:' + h + 'px;position:relative;cursor:default;'
+      + 'border-radius:2px 3px 3px 2px;overflow:hidden;background:var(--wr-line);'
+      + 'box-shadow:0 5px 12px rgba(0,0,0,.22);transition:transform .35s ease,box-shadow .35s ease';
+    // 真实封面窄条（object-position 取封面中部偏左，模拟书脊视角）
+    const img = document.createElement('img');
+    img.src = it.c; img.alt = it.t; img.loading = 'lazy';
+    img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;'
+      + 'object-position:35% 50%;display:block';
+    // 顶部书页白边
+    const topEdge = document.createElement('div');
+    topEdge.style.cssText = 'position:absolute;top:0;left:0;right:0;height:4px;z-index:3;'
+      + 'background:linear-gradient(180deg,#F7F2E7,rgba(247,242,231,.5));box-shadow:0 1px 2px rgba(0,0,0,.18)';
+    // 右侧厚度阴影
+    const sideShade = document.createElement('div');
+    sideShade.style.cssText = 'position:absolute;top:0;right:0;bottom:0;width:36%;z-index:2;'
+      + 'background:linear-gradient(270deg,rgba(0,0,0,.34),rgba(0,0,0,.04))';
+    // 高光（左侧）
+    const gloss = document.createElement('div');
+    gloss.style.cssText = 'position:absolute;top:0;left:0;bottom:0;width:42%;z-index:2;'
+      + 'background:linear-gradient(90deg,rgba(255,255,255,.26),rgba(255,255,255,.02))';
+    // 竖排书名（白字 + 阴影保证浅色封面也可读；字号随书高与标题长度自适应，完整容纳）
+    const name = document.createElement('div');
+    name.textContent = it.t;
+    var len = Math.max(1, it.t.length);
+    var fs = Math.max(7, Math.min(11, Math.floor((h - 26) / len)));
+    name.style.cssText = 'position:absolute;top:4px;left:0;right:0;bottom:6px;z-index:4;'
+      + 'display:flex;align-items:center;justify-content:center;'
+      + 'writing-mode:vertical-rl;font-size:' + fs + 'px;line-height:' + (fs + 1) + 'px;letter-spacing:0;'
+      + 'overflow:hidden;white-space:normal;word-break:break-all;'
+      + 'color:rgba(255,255,255,.96);text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 5px rgba(0,0,0,.4)';
+    spine.appendChild(img);
+    spine.appendChild(sideShade);
+    spine.appendChild(gloss);
+    spine.appendChild(topEdge);
+    spine.appendChild(name);
+    cell.appendChild(spine);
+    cell.addEventListener('mouseenter', function(){
+      spine.style.transform='translateY(-6px) scale(1.05)'; spine.style.boxShadow='0 12px 22px rgba(0,0,0,.3)';
+    });
+    cell.addEventListener('mouseleave', function(){
+      spine.style.transform=''; spine.style.boxShadow='0 5px 12px rgba(0,0,0,.22)';
+    });
+    cell.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
+    return cell;
+  }
   function renderSpine(){
     var list = spineItems();
+    if (spineLayout === 'v'){ renderSpineV(list); return; }
     shelfLayers(spinePer(), function(it, idx, row){
-      const cell = document.createElement('div');
-      cell.title = it.t;
       const thick = 0.35 + 0.65 * hashF(it.b || (it.t + it.a));   // 0.35~1.0
       const h = 104 + Math.round(thick * 28);   // 104~132px，越厚越高
       const w = 15 + Math.round(thick * 10);    // 18~25px，越厚越宽
-      const spine = document.createElement('div');
-      spine.style.cssText = 'width:' + w + 'px;height:' + h + 'px;position:relative;cursor:default;'
-        + 'border-radius:2px 3px 3px 2px;overflow:hidden;background:var(--wr-line);'
-        + 'box-shadow:0 5px 12px rgba(0,0,0,.22);transition:transform .35s ease,box-shadow .35s ease';
-      // 真实封面窄条（object-position 取封面中部偏左，模拟书脊视角）
-      const img = document.createElement('img');
-      img.src = it.c; img.alt = it.t; img.loading = 'lazy';
-      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;'
-        + 'object-position:35% 50%;display:block';
-      // 顶部书页白边
-      const topEdge = document.createElement('div');
-      topEdge.style.cssText = 'position:absolute;top:0;left:0;right:0;height:4px;z-index:3;'
-        + 'background:linear-gradient(180deg,#F7F2E7,rgba(247,242,231,.5));box-shadow:0 1px 2px rgba(0,0,0,.18)';
-      // 右侧厚度阴影
-      const sideShade = document.createElement('div');
-      sideShade.style.cssText = 'position:absolute;top:0;right:0;bottom:0;width:36%;z-index:2;'
-        + 'background:linear-gradient(270deg,rgba(0,0,0,.34),rgba(0,0,0,.04))';
-      // 高光（左侧）
-      const gloss = document.createElement('div');
-      gloss.style.cssText = 'position:absolute;top:0;left:0;bottom:0;width:42%;z-index:2;'
-        + 'background:linear-gradient(90deg,rgba(255,255,255,.26),rgba(255,255,255,.02))';
-      // 竖排书名（白字 + 阴影保证浅色封面也可读；字号随书高与标题长度自适应，完整容纳）
-      const name = document.createElement('div');
-      name.textContent = it.t;
-      var len = Math.max(1, it.t.length);
-      var fs = Math.max(7, Math.min(11, Math.floor((h - 26) / len)));
-      name.style.cssText = 'position:absolute;top:4px;left:0;right:0;bottom:6px;z-index:4;'
-        + 'display:flex;align-items:center;justify-content:center;'
-        + 'writing-mode:vertical-rl;font-size:' + fs + 'px;line-height:' + (fs + 1) + 'px;letter-spacing:0;'
-        + 'overflow:hidden;white-space:normal;word-break:break-all;'
-        + 'color:rgba(255,255,255,.96);text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 5px rgba(0,0,0,.4)';
-      spine.appendChild(img);
-      spine.appendChild(sideShade);
-      spine.appendChild(gloss);
-      spine.appendChild(topEdge);
-      spine.appendChild(name);
-      cell.appendChild(spine);
-      cell.addEventListener('mouseenter', function(){
-        spine.style.transform='translateY(-6px) scale(1.05)'; spine.style.boxShadow='0 12px 22px rgba(0,0,0,.3)';
-      });
-      cell.addEventListener('mouseleave', function(){
-        spine.style.transform=''; spine.style.boxShadow='0 5px 12px rgba(0,0,0,.22)';
-      });
-      cell.addEventListener('click', function(){ showBookDetailByTitle(it.t); });
+      const cell = spineNode(it, h, w);
       row.appendChild(cell); enter(cell);
     }, 3, '26px 24px 0');
+  }
+
+  // 3b) 书脊竖排「从下到上」：一列书脊由下往上叠，书名竖排，手账式
+  function renderSpineV(list){
+    grid.style.cssText = 'display:flex;flex-direction:column-reverse;align-items:center;gap:7px;'
+      + 'margin-top:16px;padding:2px 12px 20px;overflow-y:auto;max-height:66vh';
+    list.forEach(function(it){
+      const thick = 0.35 + 0.65 * hashF(it.b || (it.t + it.a));
+      const h = 92 + Math.round(thick * 74);    // 92~166px，越高越"厚"
+      const w = 18 + Math.round(thick * 14);    // 22~32px，越厚越宽
+      const cell = spineNode(it, h, w);
+      cell.style.opacity = '0';
+      cell.style.transform = 'translateY(18px)';
+      grid.appendChild(cell);
+      setTimeout(function(){
+        cell.style.transition = 'opacity .45s ease,transform .45s cubic-bezier(.2,.9,.3,1.1)';
+        cell.style.opacity = '1';
+        cell.style.transform = 'translateY(0)';
+      }, 60 + animSeq * 55);
+      animSeq++;
+    });
   }
 
   // 4) 成就模式：小票式图书列表（书名 + 作者/出版社 · 已读完/在读 + 时长），点击行弹详情
@@ -772,6 +798,16 @@ _GALLERY_JS = """
       b.style.color = on ? 'var(--wr-white)' : 'var(--wr-sub)';
       b.style.border = on ? '1px solid var(--wr-main)' : '1px solid var(--wr-line)';
     });
+    const layoutBox = mask.querySelector('#wr-spine-layout');
+    if (layoutBox){
+      if (m === 'spine'){ layoutBox.style.display = 'flex'; }
+      else { layoutBox.style.display = 'none'; }
+      layoutBox.querySelectorAll('.wr-slayout').forEach(function(b){
+        const on = b.getAttribute('data-layout') === spineLayout;
+        b.style.background = on ? 'var(--wr-main)' : 'transparent';
+        b.style.color = on ? 'var(--wr-white)' : 'var(--wr-sub)';
+      });
+    }
     if (m === 'shelf') renderShelf();
     else if (m === 'spine') renderSpine();
     else if (m === 'achv') renderAchv();
@@ -799,6 +835,15 @@ _GALLERY_JS = """
   modeBtns.forEach(function(b){
     b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); });
   });
+  const layoutBox = mask.querySelector('#wr-spine-layout');
+  if (layoutBox){
+    layoutBox.querySelectorAll('.wr-slayout').forEach(function(b){
+      b.addEventListener('click', function(){
+        spineLayout = b.getAttribute('data-layout');
+        if (mode === 'spine'){ setMode('spine'); }
+      });
+    });
+  }
   // 主页面封面滚动条：点击封面 → 弹该书详情（右上角"打开笔记"跳书页，覆盖旧的直接跳转逻辑）
   const coverStrip = root.querySelector('#wr-cover-gallery');
   if (coverStrip && !coverStrip.dataset.wrBound){
