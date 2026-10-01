@@ -771,19 +771,20 @@ _GALLERY_JS = """
   function achvMount(grid, ticket, style){
     const up = (style === 'vintage');
     if (up){
-      // 复古打字机：机器放大、只露出上半部（纸架+纸头），票底压着纸架，视觉上纸从机器里向上抽出
+      // 复古打字机：机器在票下方放大、只露出顶部纸架区（机身下半截裁掉），票底搭在纸架上，纸从机器向上出
       const wrap = document.createElement('div');
       wrap.style.cssText = 'position:relative;margin:0 auto;overflow:hidden;';
-      const m = document.createElement('img');
-      m.src = MACHINES[style] || '';
-      m.style.cssText = 'position:absolute;left:50%;bottom:-368px;transform:translateX(-50%);'
-        + 'width:158%;max-width:720px;height:auto;object-fit:contain;z-index:1;'
-        + 'filter:drop-shadow(0 -12px 18px rgba(0,0,0,.12));';
-      m.onerror = function(){ m.style.display = 'none'; };
-      wrap.appendChild(m);
       ticket.style.position = 'relative'; ticket.style.zIndex = '2';
       wrap.appendChild(ticket);
+      const m = document.createElement('img');
+      m.src = MACHINES[style] || '';
+      m.style.cssText = 'position:relative;left:50%;width:720px;max-width:158%;height:auto;'
+        + 'transform:translateX(-50%);margin-top:-14px;z-index:1;'
+        + 'filter:drop-shadow(0 -10px 16px rgba(0,0,0,.12));';
+      m.onerror = function(){ m.style.display = 'none'; };
+      wrap.appendChild(m);
       grid.appendChild(wrap);
+      wrap.style.height = (ticket.offsetHeight + 96) + 'px';
       return;
     }
     const wrap = document.createElement('div');
