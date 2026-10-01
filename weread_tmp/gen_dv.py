@@ -475,7 +475,6 @@ _GALLERY_JS = """
     cell.style.opacity = '0';
     cell.style.transform = 'translateY(14px) scale(.98)';
     cell.style.transition = 'opacity .5s ease,transform .5s ease';
-    grid.appendChild(cell);
     setTimeout(function(){ cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40 + n*55);
   }
 
@@ -500,11 +499,19 @@ _GALLERY_JS = """
         img.style.transform='translateY(-5px) scale(1.04)'; img.style.boxShadow='0 16px 32px rgba(0,0,0,.26)';
       });
       cell.addEventListener('mouseleave', function(){ img.style.transform=''; img.style.boxShadow=''; });
+      grid.appendChild(cell);
       enter(cell);
     });
   }
 
   // 书架容器（shelf / spine 共用）：分层架子 + 架板
+  // per 按面板实际宽度自适应：横排排满，满了自动换下一层
+  function panelInnerW(){
+    const panel = mask.querySelector('#wr-gallery-panel');
+    return (panel.clientWidth || 880) - 36;  // 面板内边距 30×2 折减
+  }
+  function shelfPer(){ return Math.max(3, Math.floor(panelInnerW() / 70)); }   // 书宽56 + gap12 + 余量
+  function spinePer(){ return Math.max(6, Math.floor(panelInnerW() / 26)); }   // 书脊平均宽约24 + gap
   function shelfLayers(per, rowBuilder){
     grid.style.cssText = 'display:flex;flex-direction:column;gap:16px;margin-top:18px';
     for (var i=0;i<items.length;i+=per){
@@ -523,7 +530,7 @@ _GALLERY_JS = """
 
   // 2) 书架模式：封面朝外立放
   function renderShelf(){
-    shelfLayers(8, function(it, idx, row){
+    shelfLayers(shelfPer(), function(it, idx, row){
       const cell = document.createElement('div');
       cell.title = it.t;
       const img = document.createElement('img');
@@ -542,7 +549,7 @@ _GALLERY_JS = """
 
   // 3) 书脊模式：书侧放，书脊朝外，竖排书名
   function renderSpine(){
-    shelfLayers(14, function(it, idx, row){
+    shelfLayers(spinePer(), function(it, idx, row){
       const cell = document.createElement('div');
       cell.title = it.t;
       const w = 15 + (it.t.length % 4) * 3;  // 15-24px 模拟真实书厚
