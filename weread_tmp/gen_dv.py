@@ -953,8 +953,7 @@ _GALLERY_JS = """
     const stampInner = document.createElement('div');
     stampInner.style.cssText = 'width:42px;height:42px;border-radius:50%;border:1px dashed ' + red + ';'
       + 'display:flex;align-items:center;justify-content:center;color:' + red + ';font-size:9px;font-weight:700;letter-spacing:1px;text-align:center;line-height:1.5';
-    stampInner.textContent = '舟读\n已阅';
-    stampInner.style.whiteSpace = 'pre';
+    stampInner.innerHTML = '舟读<br>已阅';
     stampOuter.appendChild(stampInner);
     ticket.appendChild(stampOuter);
 
