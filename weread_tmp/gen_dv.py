@@ -689,17 +689,18 @@ _GALLERY_JS = """
     }, 3, '26px 24px 0');
   }
 
-  // 3b) 书脊竖排「从下到上」：书横放堆叠——一本本平躺、书脊朝外，由下往上摞成一堆
+  // 3b) 书脊竖排「从下到上」：书横放堆叠——一本本平躺、书脊朝外，由下往上摞成一堆（微微左右交错，随手摞书感）
   function renderSpineV(list){
-    grid.style.cssText = 'display:flex;flex-direction:column-reverse;align-items:center;gap:5px;'
-      + 'margin-top:16px;padding:2px 14px 22px;overflow-y:auto;max-height:66vh';
+    grid.style.cssText = 'display:flex;flex-direction:column-reverse;align-items:center;gap:6px;'
+      + 'margin-top:16px;padding:4px 30px 24px;overflow-y:auto;max-height:66vh';
     list.forEach(function(it){
       const thick = 0.35 + 0.65 * hashF(it.b || (it.t + it.a));
-      const w = 130 + Math.round(thick * 80);    // 130~210px，越长越"高"
-      const h = 18 + Math.round(thick * 16);     // 18~34px，越厚越高
+      const w = 170 + Math.round(thick * 110);   // 170~280px，越长越"高"
+      const h = 22 + Math.round(thick * 20);     // 22~42px，越厚越高
+      const off = Math.round((hashF((it.b || it.t) + '~o') - 0.5) * 56);   // 左右交错 ±28px，每本书稳定一致
       const cell = document.createElement('div');
       cell.title = it.t;
-      cell.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;cursor:pointer;'
+      cell.style.cssText = 'position:relative;width:' + w + 'px;height:' + h + 'px;margin-left:' + off + 'px;cursor:pointer;'
         + 'border-radius:3px;overflow:hidden;background:var(--wr-line);'
         + 'box-shadow:0 5px 12px rgba(0,0,0,.22);transition:transform .35s ease,box-shadow .35s ease';
       // 封面平铺（横放视角：书脊侧面取封面横向中部）
@@ -708,7 +709,7 @@ _GALLERY_JS = """
       img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 35%;display:block';
       // 左右封皮压痕
       const leftEdge = document.createElement('div');
-      leftEdge.style.cssText = 'position:absolute;top:0;left:0;bottom:0;width:4px;z-index:3;'
+      leftEdge.style.cssText = 'position:absolute;top:0;left:0;bottom:0;width:5px;z-index:3;'
         + 'background:linear-gradient(90deg,#F7F2E7,rgba(247,242,231,.5));box-shadow:1px 0 2px rgba(0,0,0,.18)';
       // 底部厚度阴影（书横躺，厚面在上下）
       const thickShade = document.createElement('div');
@@ -721,8 +722,8 @@ _GALLERY_JS = """
       // 书名横排（沿书脊方向：书横躺后书脊文字由竖变横）
       const name = document.createElement('div');
       name.textContent = it.t;
-      var fs = Math.max(8, Math.min(13, Math.floor((h - 8) * 1.4)));
-      name.style.cssText = 'position:absolute;top:0;left:10px;right:10px;bottom:0;z-index:4;'
+      var fs = Math.max(9, Math.min(15, Math.floor((h - 8) * 1.4)));
+      name.style.cssText = 'position:absolute;top:0;left:12px;right:12px;bottom:0;z-index:4;'
         + 'display:flex;align-items:center;justify-content:flex-start;'
         + 'font-size:' + fs + 'px;line-height:' + (fs + 1) + 'px;font-weight:600;'
         + 'overflow:hidden;white-space:nowrap;text-overflow:ellipsis;'
@@ -733,7 +734,7 @@ _GALLERY_JS = """
       cell.appendChild(leftEdge);
       cell.appendChild(name);
       cell.addEventListener('mouseenter', function(){
-        cell.style.transform='translateX(4px) scale(1.02)'; cell.style.boxShadow='0 10px 20px rgba(0,0,0,.3)';
+        cell.style.transform='translateY(-2px) scale(1.02)'; cell.style.boxShadow='0 10px 20px rgba(0,0,0,.3)';
       });
       cell.addEventListener('mouseleave', function(){
         cell.style.transform=''; cell.style.boxShadow='0 5px 12px rgba(0,0,0,.22)';
