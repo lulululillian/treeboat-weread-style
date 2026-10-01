@@ -446,6 +446,13 @@ _GALLERY_JS = """
   const dataEl = mask.querySelector('#wr-gallery-data');
   const modeBtns = Array.prototype.slice.call(mask.querySelectorAll('.wr-gmode'));
   let mode = 'flat', items = [], animSeq = 0, spineLayout = 'h', achvStyle = 'classic';
+  // 出票机/打印机示意图（AI 生成，公网 URL；离线可替换为本地图）
+  const MACHINES = {
+    classic: 'https://aka.doubaocdn.com/s/HWLKWsDx2j',
+    pink: 'https://aka.doubaocdn.com/s/6seBDrJT1d',
+    vintage: 'https://aka.doubaocdn.com/s/pUKrzQO9St',
+    stamp: 'https://aka.doubaocdn.com/s/RagG2hqble'
+  };
   const nDays = parseInt(dataEl.getAttribute('data-days') || '31', 10);
   const galTitle = dataEl.getAttribute('data-title') || '';
   const galYear = parseInt(dataEl.getAttribute('data-year') || '0', 10);
@@ -760,6 +767,20 @@ _GALLERY_JS = """
     else renderAchvClassic();
   }
 
+  // 出票机背景：机器在上、小票从出票口吐出
+  function achvMount(grid, ticket, style){
+    const wrap = document.createElement('div');
+    wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;margin:0 auto';
+    const m = document.createElement('img');
+    m.src = MACHINES[style] || '';
+    m.style.cssText = 'width:100%;max-width:460px;height:auto;object-fit:contain;position:relative;z-index:3;margin-bottom:-16px;filter:drop-shadow(0 8px 14px rgba(0,0,0,.14))';
+    m.onerror = function(){ m.style.display = 'none'; };
+    wrap.appendChild(m);
+    ticket.style.zIndex = '1';
+    wrap.appendChild(ticket);
+    grid.appendChild(wrap);
+  }
+
   // 小票通用：行交互 + 明细数据
   function achvBase(){
     grid.style.cssText = 'display:flex;justify-content:center;align-items:flex-start;margin-top:18px;padding-bottom:8px';
@@ -837,7 +858,7 @@ _GALLERY_JS = """
       + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:8px">感谢本月与书为伴，下月再见</div>'
       + '<div style="letter-spacing:3px;color:' + inkSoft + ';font-size:10px;margin-top:8px">* * * * * * * * * *</div>';
     ticket.appendChild(foot);
-    grid.appendChild(ticket);
+    achvMount(grid, ticket, 'classic');
   }
 
   // 小票②：粉彩主题（参考图1：品牌 + emoji 图标行 + ITEM/PRICE 两列 + 标语 + 条形码）
@@ -883,7 +904,7 @@ _GALLERY_JS = """
       + 'repeating-linear-gradient(90deg,' + ink + ' 0 1px,transparent 1px 3px,' + ink + ' 3px 5px,transparent 5px 8px);"></div>'
       + '<div style="font-size:10px;letter-spacing:3px;margin-top:6px;color:' + inkSoft + '">舟读 · READ</div>';
     ticket.appendChild(foot);
-    grid.appendChild(ticket);
+    achvMount(grid, ticket, 'pink');
   }
 
   // 小票③：复古打字机信纸（参考图2：顶部两侧小字 + 留白 + 底部品牌标语）
@@ -919,7 +940,7 @@ _GALLERY_JS = """
       + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:8px;font-style:italic">old memory of new time ....</div>'
       + '<div style="font-size:10px;color:' + inkSoft + ';margin-top:14px;letter-spacing:2px">合计 ' + list.length + ' 本 · 累计 ' + fmtSec(total) + '</div>';
     ticket.appendChild(foot);
-    grid.appendChild(ticket);
+    achvMount(grid, ticket, 'vintage');
   }
 
   // 小票④：白纸黑字印章版（参考图3：黑字曲目式 + 编号日期 + 红印章 + 版权小字）
@@ -972,7 +993,7 @@ _GALLERY_JS = """
       + '<div style="font-size:7px;color:' + inkSoft + ';margin-top:10px;letter-spacing:1px;line-height:1.6">'
       + 'COPYRIGHT 2026 舟读 · 阅读看板 · POWERED BY WEREAD &amp; OBSIDIAN</div>';
     ticket.appendChild(foot);
-    grid.appendChild(ticket);
+    achvMount(grid, ticket, 'stamp');
   }
 
   function setMode(m){
