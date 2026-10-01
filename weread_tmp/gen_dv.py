@@ -511,17 +511,17 @@ _GALLERY_JS = """
     return (panel.clientWidth || 880) - 36;  // 面板内边距 30×2 折减
   }
   function shelfPer(){ return Math.max(3, Math.floor(panelInnerW() / 70)); }   // 书宽56 + gap12 + 余量
-  function spinePer(){ return Math.max(6, Math.floor(panelInnerW() / 26)); }   // 书脊平均宽约24 + gap
-  function shelfLayers(per, rowBuilder){
+  function spinePer(){ return Math.max(6, Math.floor(panelInnerW() / 24)); }   // 书脊平均宽约21 + gap3
+  function shelfLayers(per, rowBuilder, gap, pad){
     grid.style.cssText = 'display:flex;flex-direction:column;gap:16px;margin-top:18px';
     for (var i=0;i<items.length;i+=per){
       const layer = items.slice(i, i+per);
       const shelf = document.createElement('div');
       shelf.style.cssText = 'background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.16));'
-        + 'border-bottom:6px solid var(--wr-line);border-radius:10px;'
-        + 'box-shadow:0 6px 14px rgba(0,0,0,.14);padding:20px 18px 0;position:relative';
+        + 'border-bottom:7px solid var(--wr-line);border-radius:10px;'
+        + 'box-shadow:0 6px 14px rgba(0,0,0,.14);padding:' + (pad || '20px 18px 0') + ';position:relative';
       const row = document.createElement('div');
-      row.style.cssText = 'display:flex;align-items:flex-end;justify-content:center;gap:12px';
+      row.style.cssText = 'display:flex;align-items:flex-end;justify-content:center;gap:' + (gap || 12) + 'px';
       layer.forEach(function(it, j){ rowBuilder(it, i+j, row); });
       shelf.appendChild(row);
       grid.appendChild(shelf);
@@ -547,21 +547,35 @@ _GALLERY_JS = """
     });
   }
 
-  // 3) 书脊模式：书侧放，书脊朝外，竖排书名
+  // 稳定 hash → 厚度因子（0.35~1.0）：书脊无真实页数数据，用 bookId 模拟厚薄，同一本书每次一致
+  function hashF(s){
+    s = String(s || '');
+    var h = 0;
+    for (var i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; }
+    return (h % 1000) / 1000;
+  }
+
+  // 3) 书脊模式：书侧放，书脊朝外，竖排书名（越厚越高越宽，书名完整容纳）
   function renderSpine(){
     shelfLayers(spinePer(), function(it, idx, row){
       const cell = document.createElement('div');
       cell.title = it.t;
-      const w = 15 + (it.t.length % 4) * 3;  // 15-24px 模拟真实书厚
+      const thick = 0.35 + 0.65 * hashF(it.b || (it.t + it.a));   // 0.35~1.0
+      const h = 104 + Math.round(thick * 28);   // 104~132px，越厚越高
+      const w = 15 + Math.round(thick * 10);    // 18~25px，越厚越宽
       const spine = document.createElement('div');
-      spine.style.cssText = 'width:' + w + 'px;height:96px;border-radius:3px 2px 2px 3px;position:relative;'
+      spine.style.cssText = 'width:' + w + 'px;height:' + h + 'px;border-radius:3px 2px 2px 3px;position:relative;'
         + 'display:flex;align-items:center;justify-content:center;cursor:default;'
         + 'box-shadow:inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.22);'
         + 'transition:transform .35s ease,box-shadow .35s ease;background:' + PALETTE[idx % PALETTE.length];
       const name = document.createElement('div');
       name.textContent = it.t;
-      name.style.cssText = 'writing-mode:vertical-rl;font-size:9px;letter-spacing:1px;max-height:80px;'
-        + 'overflow:hidden;white-space:nowrap;padding:8px 0';
+      // 字号随书高与书名长度自适应（下限7px），竖排在高度内折列、完整容纳不截断
+      var len = Math.max(1, it.t.length);
+      var fs = Math.max(7, Math.min(12, Math.floor((h - 20) / len)));
+      name.style.cssText = 'writing-mode:vertical-rl;width:' + (w - 8) + 'px;height:' + (h - 14) + 'px;'
+        + 'font-size:' + fs + 'px;line-height:' + (fs + 1) + 'px;letter-spacing:0;'
+        + 'overflow:hidden;white-space:normal;word-break:break-all;padding:2px 0 0;text-align:center';
       spine.appendChild(name);
       cell.appendChild(spine);
       pickColor(it, function(c){
@@ -579,7 +593,7 @@ _GALLERY_JS = """
         spine.style.transform=''; spine.style.boxShadow='inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.22)';
       });
       row.appendChild(cell); enter(cell);
-    });
+    }, 3, '26px 24px 0');
   }
 
   function setMode(m){

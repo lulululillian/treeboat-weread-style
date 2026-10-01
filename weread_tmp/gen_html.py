@@ -308,6 +308,7 @@ def gallery_modal_html():
             "t": b.get("title") or b.get("short") or "未知",
             "a": b.get("author", "") or "",
             "c": cov,
+            "b": b.get("bookId", ""),
         })
     data_json = json.dumps(items, ensure_ascii=False)
     # 避免注入：< > & ` ${ 全部转成 \u 转义（JSON 合法，HTML/JS 安全）
