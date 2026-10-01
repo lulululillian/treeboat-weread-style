@@ -431,7 +431,70 @@ root.querySelectorAll('.wr-ring-svg').forEach(function(svg){
   requestAnimationFrame(tick);
 })();"""
 
-JS = SKIN_JS + "\n" + JS
+# ---- 月度画廊模式：纯展示弹窗（当前月/历史月共用） ----
+# 按钮 #wr-gallery-btn、遮罩 #wr-gallery-mask 由 gen_html.py 的 cover_gallery_html()/gallery_modal_html() 生成
+# 数据从隐藏 div #wr-gallery-data 读取（JSON），逐张延迟入场，无跳转无数据，仅封面墙欣赏
+_GALLERY_JS = """
+// ---- 月度画廊模式 ----
+(function(){
+  const btn = root.querySelector('#wr-gallery-btn');
+  const mask = root.querySelector('#wr-gallery-mask');
+  if (!btn || !mask) return;
+  const grid = mask.querySelector('#wr-gallery-grid');
+  const dataEl = mask.querySelector('#wr-gallery-data');
+  let built = false;
+  function build(){
+    if (built) return;
+    built = true;
+    let items = [];
+    try { items = JSON.parse(dataEl.textContent); } catch(e) {}
+    items.forEach(function(it, i){
+      const cell = document.createElement('div');
+      cell.style.cssText = 'opacity:0;transform:translateY(16px) scale(.96);transition:opacity .5s ease,transform .5s ease';
+      const img = document.createElement('img');
+      img.src = it.c; img.alt = it.t; img.loading = 'lazy';
+      img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:14px;'
+        + 'box-shadow:0 8px 20px rgba(0,0,0,.16);background:var(--wr-line);display:block;'
+        + 'transition:transform .35s ease,box-shadow .35s ease;cursor:default';
+      const t = document.createElement('div');
+      t.textContent = it.t;
+      t.style.cssText = 'font-size:12px;color:var(--wr-main);margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      const a = document.createElement('div');
+      a.textContent = it.a;
+      a.style.cssText = 'font-size:11px;color:var(--wr-sub);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
+      cell.appendChild(img); cell.appendChild(t); cell.appendChild(a);
+      grid.appendChild(cell);
+      setTimeout(function(){ cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40 + i * 60);
+      cell.addEventListener('mouseenter', function(){
+        img.style.transform='translateY(-5px) scale(1.04)';
+        img.style.boxShadow='0 16px 32px rgba(0,0,0,.26)';
+      });
+      cell.addEventListener('mouseleave', function(){
+        img.style.transform=''; img.style.boxShadow='';
+      });
+    });
+  }
+  function open(){
+    if (!built) build();
+    mask.style.visibility = 'visible';
+    mask.style.opacity = '1';
+    const panel = mask.querySelector('#wr-gallery-panel');
+    panel.style.transform = 'translateY(0) scale(1)';
+  }
+  function close(){
+    mask.style.opacity = '0';
+    mask.style.visibility = 'hidden';
+    const panel = mask.querySelector('#wr-gallery-panel');
+    panel.style.transform = 'translateY(30px) scale(.96)';
+  }
+  btn.addEventListener('click', open);
+  mask.querySelector('#wr-gallery-close').addEventListener('click', close);
+  mask.addEventListener('click', function(e){ if (e.target === mask) close(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
+})();
+"""
+
+JS = SKIN_JS + "\n" + JS + "\n" + _GALLERY_JS
 js = (JS.replace("%HEADER%", header).replace("%MONTH%", month)
         .replace("%WEEK%", week).replace("%DAY%", day)
         .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY)
@@ -598,6 +661,7 @@ if os.path.isdir(DATA_DIR):
                "root.innerHTML = H + M;\n"
                + _INTERACT_JS + "\n"
                + _report_click_js() + "\n"
+               + _GALLERY_JS + "\n"
                "bindThemeSel(root);")
         hjs = (hjs.replace("%HEADER%", hheader).replace("%MONTH%", hmonth)
                    .replace("__THEMES__", THEMES_JS).replace("__CUR__", _CUR_KEY))

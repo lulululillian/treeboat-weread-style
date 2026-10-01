@@ -296,6 +296,41 @@ def summary_html():
 # ================= 周视图（与月视图同构，统计维度＝本周） =================
 
 
+def gallery_modal_html():
+    """月度画廊模式：纯展示弹窗（无跳转、无数据，仅封面墙欣赏）。
+    数据以 JSON 内联在隐藏 div 中，由 gen_dv.py 的 _GALLERY_JS 读取并渲染。"""
+    items = []
+    for b in sorted(books, key=lambda x: x.get("sec", 0), reverse=True):
+        cov = b.get("cover", "")
+        if not cov:
+            continue
+        items.append({
+            "t": b.get("title") or b.get("short") or "未知",
+            "a": b.get("author", "") or "",
+            "c": cov,
+        })
+    data_json = json.dumps(items, ensure_ascii=False)
+    # 避免注入：< > & ` ${ 全部转成 \u 转义（JSON 合法，HTML/JS 安全）
+    data_json = (data_json.replace("<", "\\u003c").replace(">", "\\u003e")
+                 .replace("&", "\\u0026").replace("`", "\\u0060")
+                 .replace("${", "\\u0024{"))
+    return (f'<div id="wr-gallery-mask" style="position:fixed;inset:0;background:rgba(20,26,40,.55);'
+            f'backdrop-filter:blur(8px);z-index:9999;display:flex;align-items:center;justify-content:center;'
+            f'opacity:0;visibility:hidden;transition:opacity .3s ease,visibility .3s ease">'
+            f'<div id="wr-gallery-panel" style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:20px;'
+            f'padding:28px 30px;max-width:940px;width:92vw;max-height:86vh;overflow:auto;'
+            f'box-shadow:0 24px 60px rgba(0,0,0,.35);transform:translateY(30px) scale(.96);'
+            f'transition:transform .35s cubic-bezier(.2,.9,.3,1.15);position:relative">'
+            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
+            f'<div><div style="font-size:19px;font-weight:600;color:#414969">本月画廊 · {TITLE}</div>'
+            f'<div style="font-size:12px;color:#7E748C;margin-top:5px">这个月翻过的书页 · {len(items)} 本 · 纯欣赏</div></div>'
+            f'<button id="wr-gallery-close" style="border:none;background:var(--wr-bg);color:var(--wr-main);width:30px;height:30px;'
+            f'border-radius:50%;font-size:16px;cursor:pointer;line-height:1;flex-shrink:0">×</button></div>'
+            f'<div id="wr-gallery-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));'
+            f'gap:24px 20px;margin-top:18px"></div>'
+            f'<div id="wr-gallery-data" style="display:none">{data_json}</div>'
+            f'</div></div>')
+
 def cover_gallery_html():
     # 本月在读书籍封面横向画廊（无背景卡样式，带自动滚动动效；按时长降序，缺失封面跳过）
     cards = []
@@ -319,10 +354,16 @@ def cover_gallery_html():
     if not cards:
         return ""
     return (f'<div style="margin:0 0 16px">'
-            f'<div style="font-size:14px;font-weight:500;margin-bottom:10px;color:#414969">本月在读 · 封面</div>'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
+            f'<div style="font-size:14px;font-weight:500;color:#414969">本月在读 · 封面</div>'
+            f'<button id="wr-gallery-btn" style="border:none;background:#414969;color:#FFFFFF;'
+            f'padding:5px 14px;border-radius:999px;font-size:12px;cursor:pointer;'
+            f'box-shadow:0 2px 6px rgba(0,0,0,.12);transition:transform .2s ease,box-shadow .2s ease">画廊模式</button>'
+            f'</div>'
             f'<div id="wr-cover-gallery" style="display:flex;gap:12px;overflow-x:auto;'
             f'padding:4px 2px 8px;align-items:flex-start;cursor:grab">'
-            f'{"".join(cards)}</div></div>')
+            f'{"".join(cards)}</div>'
+            f'{gallery_modal_html()}</div>')
 
 def week_bounds():
     now = datetime.datetime.now(TZ).date()
