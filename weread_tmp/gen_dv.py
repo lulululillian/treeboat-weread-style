@@ -432,25 +432,58 @@ root.querySelectorAll('.wr-ring-svg').forEach(function(svg){
 })();"""
 
 # ---- 月度画廊模式：纯展示弹窗（当前月/历史月共用） ----
-# 按钮 #wr-gallery-btn、遮罩 #wr-gallery-mask 由 gen_html.py 的 cover_gallery_html()/gallery_modal_html() 生成
-# 数据从隐藏 div #wr-gallery-data 读取（JSON），逐张延迟入场，无跳转无数据，仅封面墙欣赏
+# 按钮 #wr-gallery-btn、遮罩 #wr-gallery-mask、模式切换 #wr-gallery-modes 由 gen_html.py 生成
+# 数据从隐藏 div #wr-gallery-data 读取（JSON）。三种展示模式：
+#   flat  = 平铺封面墙（基础模式）；shelf = 书架立放（封面朝外，站架板上）；
+#   spine = 书脊朝外（书侧放，竖排书名写在书脊上，颜色取封面主色，跨域失败回退色板）
 _GALLERY_JS = """
-// ---- 月度画廊模式 ----
+// ---- 月度画廊模式（三模式：平铺 / 书架 / 书脊） ----
 (function(){
   const btn = root.querySelector('#wr-gallery-btn');
   const mask = root.querySelector('#wr-gallery-mask');
   if (!btn || !mask) return;
   const grid = mask.querySelector('#wr-gallery-grid');
   const dataEl = mask.querySelector('#wr-gallery-data');
-  let built = false;
-  function build(){
-    if (built) return;
-    built = true;
-    let items = [];
-    try { items = JSON.parse(dataEl.textContent); } catch(e) {}
+  const modeBtns = Array.prototype.slice.call(mask.querySelectorAll('.wr-gmode'));
+  let mode = 'flat', items = [], animSeq = 0;
+
+  // 书脊配色：封面取主色，CORS/加载失败回退固定色板
+  var PALETTE = ['#5B4A52','#6E5D8C','#8C6D4A','#4A6E68','#7A4E3E','#55637E',
+                 '#6E5A4A','#3E5C6E','#8A5A5A','#5A6E4A','#4E4E66','#7C6A3E'];
+  function pickColor(it, cb){
+    var img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function(){
+      try {
+        var cv = document.createElement('canvas'); cv.width = 32; cv.height = 42;
+        var cx = cv.getContext('2d'); cx.drawImage(img, 0, 0, 32, 42);
+        var d = cx.getImageData(0, 0, 32, 42).data;
+        var r=0,g=0,b=0,n=0;
+        for (var i=0;i<d.length;i+=4){ if (d[i+3]>120){ r+=d[i]; g+=d[i+1]; b+=d[i+2]; n++; } }
+        if (n>0) cb({r:Math.round(r/n),g:Math.round(g/n),b:Math.round(b/n)}); else cb(null);
+      } catch(e){ cb(null); }
+    };
+    img.onerror = function(){ cb(null); };
+    img.src = it.c;
+  }
+  function txtColor(r,g,b){
+    var l = (0.299*r + 0.587*g + 0.114*b) / 255;
+    return l > 0.62 ? 'rgba(25,30,45,.85)' : 'rgba(255,255,255,.92)';
+  }
+  function enter(cell){
+    var n = animSeq++;
+    cell.style.opacity = '0';
+    cell.style.transform = 'translateY(14px) scale(.98)';
+    cell.style.transition = 'opacity .5s ease,transform .5s ease';
+    grid.appendChild(cell);
+    setTimeout(function(){ cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40 + n*55);
+  }
+
+  // 1) 平铺封面墙
+  function renderFlat(){
+    grid.style.cssText = 'display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:24px 20px;margin-top:18px';
     items.forEach(function(it, i){
       const cell = document.createElement('div');
-      cell.style.cssText = 'opacity:0;transform:translateY(16px) scale(.96);transition:opacity .5s ease,transform .5s ease';
       const img = document.createElement('img');
       img.src = it.c; img.alt = it.t; img.loading = 'lazy';
       img.style.cssText = 'width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:14px;'
@@ -463,19 +496,105 @@ _GALLERY_JS = """
       a.textContent = it.a;
       a.style.cssText = 'font-size:11px;color:var(--wr-sub);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap';
       cell.appendChild(img); cell.appendChild(t); cell.appendChild(a);
-      grid.appendChild(cell);
-      setTimeout(function(){ cell.style.opacity='1'; cell.style.transform='translateY(0) scale(1)'; }, 40 + i * 60);
       cell.addEventListener('mouseenter', function(){
-        img.style.transform='translateY(-5px) scale(1.04)';
-        img.style.boxShadow='0 16px 32px rgba(0,0,0,.26)';
+        img.style.transform='translateY(-5px) scale(1.04)'; img.style.boxShadow='0 16px 32px rgba(0,0,0,.26)';
       });
-      cell.addEventListener('mouseleave', function(){
-        img.style.transform=''; img.style.boxShadow='';
-      });
+      cell.addEventListener('mouseleave', function(){ img.style.transform=''; img.style.boxShadow=''; });
+      enter(cell);
     });
   }
+
+  // 书架容器（shelf / spine 共用）：分层架子 + 架板
+  function shelfLayers(per, rowBuilder){
+    grid.style.cssText = 'display:flex;flex-direction:column;gap:16px;margin-top:18px';
+    for (var i=0;i<items.length;i+=per){
+      const layer = items.slice(i, i+per);
+      const shelf = document.createElement('div');
+      shelf.style.cssText = 'background:linear-gradient(180deg,rgba(0,0,0,.04),rgba(0,0,0,.16));'
+        + 'border-bottom:6px solid var(--wr-line);border-radius:10px;'
+        + 'box-shadow:0 6px 14px rgba(0,0,0,.14);padding:20px 18px 0;position:relative';
+      const row = document.createElement('div');
+      row.style.cssText = 'display:flex;align-items:flex-end;justify-content:center;gap:12px';
+      layer.forEach(function(it, j){ rowBuilder(it, i+j, row); });
+      shelf.appendChild(row);
+      grid.appendChild(shelf);
+    }
+  }
+
+  // 2) 书架模式：封面朝外立放
+  function renderShelf(){
+    shelfLayers(8, function(it, idx, row){
+      const cell = document.createElement('div');
+      cell.title = it.t;
+      const img = document.createElement('img');
+      img.src = it.c; img.alt = it.t; img.loading = 'lazy';
+      img.style.cssText = 'width:56px;height:84px;object-fit:cover;border-radius:3px 7px 7px 3px;display:block;'
+        + 'box-shadow:0 7px 16px rgba(0,0,0,.24), inset 0 0 0 1px rgba(255,255,255,.08);'
+        + 'transition:transform .35s ease,box-shadow .35s ease;cursor:default';
+      cell.appendChild(img);
+      cell.addEventListener('mouseenter', function(){
+        img.style.transform='translateY(-7px) scale(1.03)'; img.style.boxShadow='0 14px 26px rgba(0,0,0,.3), inset 0 0 0 1px rgba(255,255,255,.08)';
+      });
+      cell.addEventListener('mouseleave', function(){ img.style.transform=''; img.style.boxShadow='0 7px 16px rgba(0,0,0,.24), inset 0 0 0 1px rgba(255,255,255,.08)'; });
+      row.appendChild(cell); enter(cell);
+    });
+  }
+
+  // 3) 书脊模式：书侧放，书脊朝外，竖排书名
+  function renderSpine(){
+    shelfLayers(14, function(it, idx, row){
+      const cell = document.createElement('div');
+      cell.title = it.t;
+      const w = 15 + (it.t.length % 4) * 3;  // 15-24px 模拟真实书厚
+      const spine = document.createElement('div');
+      spine.style.cssText = 'width:' + w + 'px;height:96px;border-radius:3px 2px 2px 3px;position:relative;'
+        + 'display:flex;align-items:center;justify-content:center;cursor:default;'
+        + 'box-shadow:inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.22);'
+        + 'transition:transform .35s ease,box-shadow .35s ease;background:' + PALETTE[idx % PALETTE.length];
+      const name = document.createElement('div');
+      name.textContent = it.t;
+      name.style.cssText = 'writing-mode:vertical-rl;font-size:9px;letter-spacing:1px;max-height:80px;'
+        + 'overflow:hidden;white-space:nowrap;padding:8px 0';
+      spine.appendChild(name);
+      cell.appendChild(spine);
+      pickColor(it, function(c){
+        if (c){
+          spine.style.background = 'linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.16)), rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
+          name.style.color = txtColor(c.r, c.g, c.b);
+        } else {
+          name.style.color = txtColor(110, 90, 95);
+        }
+      });
+      cell.addEventListener('mouseenter', function(){
+        spine.style.transform='translateY(-6px) scale(1.05)'; spine.style.boxShadow='inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 12px 22px rgba(0,0,0,.3)';
+      });
+      cell.addEventListener('mouseleave', function(){
+        spine.style.transform=''; spine.style.boxShadow='inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.22)';
+      });
+      row.appendChild(cell); enter(cell);
+    });
+  }
+
+  function setMode(m){
+    mode = m; animSeq = 0;
+    grid.innerHTML = '';
+    modeBtns.forEach(function(b){
+      const on = b.getAttribute('data-mode') === m;
+      b.style.background = on ? 'var(--wr-main)' : 'transparent';
+      b.style.color = on ? 'var(--wr-white)' : 'var(--wr-sub)';
+      b.style.border = on ? '1px solid var(--wr-main)' : '1px solid var(--wr-line)';
+    });
+    if (m === 'shelf') renderShelf();
+    else if (m === 'spine') renderSpine();
+    else renderFlat();
+  }
+
+  function build(){
+    try { items = JSON.parse(dataEl.textContent); } catch(e) {}
+    renderFlat();
+  }
   function open(){
-    if (!built) build();
+    if (!grid.innerHTML) build();
     mask.style.visibility = 'visible';
     mask.style.opacity = '1';
     const panel = mask.querySelector('#wr-gallery-panel');
@@ -488,6 +607,9 @@ _GALLERY_JS = """
     panel.style.transform = 'translateY(30px) scale(.96)';
   }
   btn.addEventListener('click', open);
+  modeBtns.forEach(function(b){
+    b.addEventListener('click', function(){ setMode(b.getAttribute('data-mode')); });
+  });
   mask.querySelector('#wr-gallery-close').addEventListener('click', close);
   mask.addEventListener('click', function(e){ if (e.target === mask) close(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') close(); });
