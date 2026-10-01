@@ -555,8 +555,16 @@ _GALLERY_JS = """
     return (h % 1000) / 1000;
   }
 
-  // 3) 书脊模式：书侧放，书脊朝外，竖排书名（越厚越高越宽，书名完整容纳）
+  // 书脊排序：读完的书在前，其余按阅读时长降序（月度数据无读完日期，用 finished 代理"已读完"优先）
+  function spineItems(){
+    var arr = items.slice();
+    arr.sort(function(a, b){ return (b.f || 0) - (a.f || 0) || (b.s || 0) - (a.s || 0); });
+    return arr;
+  }
+
+  // 3) 书脊模式：真实封面书脊——封面窄条 + 顶部书页白边 + 右侧厚度阴影 + 高光渐变 + 竖排书名
   function renderSpine(){
+    var list = spineItems();
     shelfLayers(spinePer(), function(it, idx, row){
       const cell = document.createElement('div');
       cell.title = it.t;
@@ -564,33 +572,47 @@ _GALLERY_JS = """
       const h = 104 + Math.round(thick * 28);   // 104~132px，越厚越高
       const w = 15 + Math.round(thick * 10);    // 18~25px，越厚越宽
       const spine = document.createElement('div');
-      spine.style.cssText = 'width:' + w + 'px;height:' + h + 'px;border-radius:3px 2px 2px 3px;position:relative;'
-        + 'display:flex;align-items:center;justify-content:center;cursor:default;'
-        + 'box-shadow:inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.22);'
-        + 'transition:transform .35s ease,box-shadow .35s ease;background:' + PALETTE[idx % PALETTE.length];
+      spine.style.cssText = 'width:' + w + 'px;height:' + h + 'px;position:relative;cursor:default;'
+        + 'border-radius:2px 3px 3px 2px;overflow:hidden;background:var(--wr-line);'
+        + 'box-shadow:0 5px 12px rgba(0,0,0,.22);transition:transform .35s ease,box-shadow .35s ease';
+      // 真实封面窄条（object-position 取封面中部偏左，模拟书脊视角）
+      const img = document.createElement('img');
+      img.src = it.c; img.alt = it.t; img.loading = 'lazy';
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;'
+        + 'object-position:35% 50%;display:block';
+      // 顶部书页白边
+      const topEdge = document.createElement('div');
+      topEdge.style.cssText = 'position:absolute;top:0;left:0;right:0;height:4px;z-index:3;'
+        + 'background:linear-gradient(180deg,#F7F2E7,rgba(247,242,231,.5));box-shadow:0 1px 2px rgba(0,0,0,.18)';
+      // 右侧厚度阴影
+      const sideShade = document.createElement('div');
+      sideShade.style.cssText = 'position:absolute;top:0;right:0;bottom:0;width:36%;z-index:2;'
+        + 'background:linear-gradient(270deg,rgba(0,0,0,.34),rgba(0,0,0,.04))';
+      // 高光（左侧）
+      const gloss = document.createElement('div');
+      gloss.style.cssText = 'position:absolute;top:0;left:0;bottom:0;width:42%;z-index:2;'
+        + 'background:linear-gradient(90deg,rgba(255,255,255,.26),rgba(255,255,255,.02))';
+      // 竖排书名（白字 + 阴影保证浅色封面也可读；字号随书高与标题长度自适应，完整容纳）
       const name = document.createElement('div');
       name.textContent = it.t;
-      // 字号随书高与书名长度自适应（下限7px），竖排在高度内折列、完整容纳不截断
       var len = Math.max(1, it.t.length);
-      var fs = Math.max(7, Math.min(12, Math.floor((h - 20) / len)));
-      name.style.cssText = 'writing-mode:vertical-rl;width:' + (w - 8) + 'px;height:' + (h - 14) + 'px;'
-        + 'font-size:' + fs + 'px;line-height:' + (fs + 1) + 'px;letter-spacing:0;'
-        + 'overflow:hidden;white-space:normal;word-break:break-all;padding:2px 0 0;text-align:center';
+      var fs = Math.max(7, Math.min(11, Math.floor((h - 26) / len)));
+      name.style.cssText = 'position:absolute;top:4px;left:0;right:0;bottom:6px;z-index:4;'
+        + 'display:flex;align-items:center;justify-content:center;'
+        + 'writing-mode:vertical-rl;font-size:' + fs + 'px;line-height:' + (fs + 1) + 'px;letter-spacing:0;'
+        + 'overflow:hidden;white-space:normal;word-break:break-all;'
+        + 'color:rgba(255,255,255,.96);text-shadow:0 1px 2px rgba(0,0,0,.7),0 0 5px rgba(0,0,0,.4)';
+      spine.appendChild(img);
+      spine.appendChild(sideShade);
+      spine.appendChild(gloss);
+      spine.appendChild(topEdge);
       spine.appendChild(name);
       cell.appendChild(spine);
-      pickColor(it, function(c){
-        if (c){
-          spine.style.background = 'linear-gradient(180deg, rgba(255,255,255,.16), rgba(0,0,0,.16)), rgb(' + c.r + ',' + c.g + ',' + c.b + ')';
-          name.style.color = txtColor(c.r, c.g, c.b);
-        } else {
-          name.style.color = txtColor(110, 90, 95);
-        }
-      });
       cell.addEventListener('mouseenter', function(){
-        spine.style.transform='translateY(-6px) scale(1.05)'; spine.style.boxShadow='inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 12px 22px rgba(0,0,0,.3)';
+        spine.style.transform='translateY(-6px) scale(1.05)'; spine.style.boxShadow='0 12px 22px rgba(0,0,0,.3)';
       });
       cell.addEventListener('mouseleave', function(){
-        spine.style.transform=''; spine.style.boxShadow='inset 0 3px 0 rgba(0,0,0,.28), inset 0 -3px 0 rgba(0,0,0,.28), 0 5px 12px rgba(0,0,0,.22)';
+        spine.style.transform=''; spine.style.boxShadow='0 5px 12px rgba(0,0,0,.22)';
       });
       row.appendChild(cell); enter(cell);
     }, 3, '26px 24px 0');

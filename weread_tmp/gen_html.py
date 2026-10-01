@@ -309,6 +309,8 @@ def gallery_modal_html():
             "a": b.get("author", "") or "",
             "c": cov,
             "b": b.get("bookId", ""),
+            "f": 1 if b.get("finished") else 0,
+            "s": b.get("sec", 0),
         })
     data_json = json.dumps(items, ensure_ascii=False)
     # 避免注入：< > & ` ${ 全部转成 \u 转义（JSON 合法，HTML/JS 安全）
