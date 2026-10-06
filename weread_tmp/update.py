@@ -28,6 +28,8 @@ UPDATE_FILES = [
     "prep_dash.py",
     "gen_html.py",
     "gen_dv.py",
+    "html2canvas.min.js",
+    "html2canvas.LICENSE.txt",
     "sync_notes.py",
     "archive_month.py",
     "gen_monthly_summary.py",

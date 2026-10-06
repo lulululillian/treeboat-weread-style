@@ -296,8 +296,66 @@ def summary_html():
 # ================= 周视图（与月视图同构，统计维度＝本周） =================
 
 
+def cover_strip_html():
+    cards = []
+    for b in sorted(books, key=lambda x: x.get("sec", 0), reverse=True):
+        disp = b.get("title") or b.get("short") or "未知"
+        cov = b.get("cover", "")
+        if not cov:
+            continue
+        tstr = fmt_sec(b.get("sec", 0))
+        cards.append(
+            f'<div style="flex:0 0 auto;width:96px;text-align:center">'
+            f'<a href="{ob_uri(disp)}" data-note="{esc(disp)}" data-t="{esc(disp)}" style="text-decoration:none;display:block;cursor:pointer" title="打开笔记：{esc(disp)}">'
+            f'<img src="{esc(cov)}" alt="{esc(disp)}" loading="lazy" '
+            f'style="width:96px;height:128px;object-fit:cover;border-radius:10px;'
+            f'border:0.5px solid #E6D4C0;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08);pointer-events:none"/>'
+            f'</a>'
+            f'<div style="font-size:11px;color:#414969;margin-top:6px;overflow:hidden;'
+            f'text-overflow:ellipsis;white-space:nowrap;max-width:96px">{esc(disp)}</div>'
+            f'<div style="font-size:10px;color:#7E748C;margin-top:2px">{tstr}</div>'
+            f'</div>')
+    return (f'<div id="wr-cover-gallery" style="display:flex;gap:12px;overflow-x:auto;'
+            f'padding:4px 2px 8px;align-items:flex-start;cursor:grab">'
+            f'{"".join(cards)}</div>')
+
+def gallery_year_data():
+    """Only monthly archives; one snapshot per period, live input overrides its archive."""
+    snapshots = {}
+    for name in sorted(os.listdir(config.data_dir())) if os.path.isdir(config.data_dir()) else []:
+        match = re.fullmatch(r"(\d{4})-(\d{2})\.json", name)
+        if not match or not 1 <= int(match[2]) <= 12:
+            continue
+        with open(os.path.join(config.data_dir(), name), encoding="utf-8") as f:
+            snapshots[(int(match[1]), int(match[2]))] = json.load(f)
+    snapshots[(YEAR, MONTH)] = D
+    years = {}
+    for (year, month), snapshot in sorted(snapshots.items()):
+        entry = years.setdefault(str(year), {"months": [], "items": []})
+        entry["months"].append(month)
+        for book in snapshot.get("books", []):
+            title = book.get("title") or book.get("short") or "未知"
+            key = str(book.get("bookId") or title)
+            item = next((x for x in entry["items"] if x["key"] == key), None)
+            if item is None:
+                item = {"key": key, "t": title, "a": "", "c": "", "b": book.get("bookId", ""),
+                        "f": 0, "s": 0, "p": "", "d": [], "l": ob_uri(title), "m": 0, "i": 0, "months": []}
+                entry["items"].append(item)
+            item["a"] = book.get("author") or item["a"]
+            item["c"] = book.get("cover") or item["c"]
+            item["f"] = int(bool(book.get("finished")))
+            item["s"] += book.get("sec", 0) or 0
+            item["m"] += book.get("month_marks", 0) or 0
+            # ideas is the lifetime bookmark count, not a monthly delta.
+            item["i"] = max(item["i"], book.get("ideas", 0) or 0)
+            item["months"].append(month)
+    for entry in years.values():
+        entry["items"] = sorted((x for x in entry["items"] if x["c"]), key=lambda x: x["s"], reverse=True)
+    return years
+
+
 def gallery_modal_html():
-    """月度画廊模式：纯展示弹窗（无跳转、无数据，仅封面墙欣赏）。
+    """主页面月度画廊，四种模式原位切换，点击书本打开详情。
     数据以 JSON 内联在隐藏 div 中，由 gen_dv.py 的 _GALLERY_JS 读取并渲染。"""
     items = []
     for b in sorted(books, key=lambda x: x.get("sec", 0), reverse=True):
@@ -333,27 +391,36 @@ def gallery_modal_html():
             "i": b.get("ideas", 0),
         })
     data_json = json.dumps(items, ensure_ascii=False)
+    year_json = json.dumps(gallery_year_data(), ensure_ascii=True).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026").replace("`", "\\u0060").replace("${", "\\u0024{")
     # 避免注入：< > & ` ${ 全部转成 \u 转义（JSON 合法，HTML/JS 安全）
     data_json = (data_json.replace("<", "\\u003c").replace(">", "\\u003e")
                  .replace("&", "\\u0026").replace("`", "\\u0060")
                  .replace("${", "\\u0024{"))
-    return (f'<div id="wr-gallery-mask" style="position:fixed;inset:0;background:rgba(20,26,40,.55);'
-            f'backdrop-filter:blur(8px);z-index:9999;display:flex;align-items:center;justify-content:center;'
-            f'opacity:0;visibility:hidden;transition:opacity .3s ease,visibility .3s ease">'
-            f'<div id="wr-gallery-panel" style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:20px;'
-            f'padding:28px 30px;max-width:940px;width:92vw;max-height:86vh;overflow:auto;'
-            f'box-shadow:0 24px 60px rgba(0,0,0,.35);transform:translateY(30px) scale(.96);'
-            f'transition:transform .35s cubic-bezier(.2,.9,.3,1.15);position:relative">'
-            f'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px">'
-            f'<div><div style="font-size:19px;font-weight:600;color:#414969">本月画廊 · {TITLE}</div>'
-            f'<div style="font-size:12px;color:#7E748C;margin-top:5px">这个月翻过的书页 · {len(items)} 本 · 纯欣赏</div></div>'
-            f'<div style="display:flex;align-items:center;gap:10px">'
-            f'<div id="wr-gallery-modes" style="display:flex;gap:6px">'
+    return (f'<section style="margin:0 0 16px">'
+            f'<div style="width:100%;box-sizing:border-box;position:relative">'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:4px">'
+            f'<div><div style="font-size:14px;font-weight:500;color:var(--wr-main)">本月在读 · {len(items)} 本</div>'
+            f'</div>'
+            f'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px">'
+            f'<div id="wr-gallery-modes" style="display:flex;flex-wrap:wrap;gap:6px">'
+            f'<button data-mode="scroll" class="wr-gmode" style="background:var(--wr-main);color:var(--wr-white);border:none;padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">滚动</button>'
             f'<button data-mode="flat" class="wr-gmode" style="background:var(--wr-main);color:var(--wr-white);border:none;padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">平铺</button>'
             f'<button data-mode="shelf" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">书架</button>'
             f'<button data-mode="spine" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">书脊</button>'
             f'<button data-mode="achv" class="wr-gmode" style="background:transparent;color:var(--wr-sub);border:1px solid var(--wr-line);padding:4px 12px;border-radius:999px;font-size:12px;cursor:pointer">阅读小票</button>'
             f'</div>'
+            f'</div></div>{cover_strip_html()}</div></section>'
+            f'<div id="wr-gallery-mask" role="dialog" aria-label="本月画廊" style="position:fixed;inset:0;z-index:9999;background:rgba(20,26,40,.55);backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center">'
+            f'<div id="wr-gallery-panel" style="width:min(880px,92vw);max-width:92vw;max-height:90vh;box-sizing:border-box;background:var(--wr-bg);color:var(--wr-main);border:1px solid var(--wr-line);border-radius:18px;padding:20px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.35)">'
+            f'<div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;flex-shrink:0;padding-bottom:12px">'
+            f'<strong id="wr-gallery-heading" style="color:var(--wr-main);margin-right:auto">本月画廊 · {TITLE}</strong>'
+            f'<select id="wr-gallery-scope" aria-label="画廊范围" style="background:var(--wr-bg);color:var(--wr-main);border:1px solid var(--wr-line);border-radius:6px;padding:4px;font-size:12px"><option value="month">本月</option><option value="year">全年</option></select>'
+            f'<select id="wr-gallery-year" aria-label="画廊年份" style="display:none;background:var(--wr-bg);color:var(--wr-main);border:1px solid var(--wr-line);border-radius:6px;padding:4px;font-size:12px"></select>'
+            f'<span id="wr-gallery-coverage" style="display:none;flex-basis:100%;font-size:10px;color:var(--wr-sub)"></span>'
+            f'<button data-mode="flat" class="wr-gmode" style="border:1px solid var(--wr-line);background:transparent;color:var(--wr-sub);padding:4px 12px;border-radius:999px;cursor:pointer">平铺</button><button data-mode="shelf" class="wr-gmode" style="border:1px solid var(--wr-line);background:transparent;color:var(--wr-sub);padding:4px 12px;border-radius:999px;cursor:pointer">书架</button><button data-mode="spine" class="wr-gmode" style="border:1px solid var(--wr-line);background:transparent;color:var(--wr-sub);padding:4px 12px;border-radius:999px;cursor:pointer">书脊</button><button data-mode="achv" class="wr-gmode" style="border:1px solid var(--wr-line);background:transparent;color:var(--wr-sub);padding:4px 12px;border-radius:999px;cursor:pointer">阅读小票</button>'
+            f'<button id="wr-view-export" style="background:var(--wr-bg);color:var(--wr-main);border:1px solid var(--wr-line);border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer">导出图片</button>'
+            f'<span id="wr-view-export-status" role="status" style="font-size:10px;color:var(--wr-sub);overflow-wrap:anywhere"></span>'
+            f'<button id="wr-gallery-close" aria-label="关闭画廊" style="border:none;background:transparent;color:var(--wr-main);font-size:24px;cursor:pointer">×</button>'
             f'<div id="wr-spine-layout" style="display:none;align-items:center;gap:4px;background:var(--wr-bg);border:1px solid var(--wr-line);border-radius:999px;padding:2px">'
             f'<button data-layout="h" class="wr-slayout" style="border:none;background:var(--wr-main);color:var(--wr-white);padding:3px 10px;border-radius:999px;font-size:11px;cursor:pointer">书架排</button>'
             f'<button data-layout="v" class="wr-slayout" style="border:none;background:transparent;color:var(--wr-sub);padding:3px 10px;border-radius:999px;font-size:11px;cursor:pointer">从下到上</button>'
@@ -364,54 +431,32 @@ def gallery_modal_html():
             f'<button data-style="vintage" class="wr-astyle" style="border:none;background:transparent;color:var(--wr-sub);padding:3px 10px;border-radius:999px;font-size:11px;cursor:pointer">复古</button>'
             f'<button data-style="stamp" class="wr-astyle" style="border:none;background:transparent;color:var(--wr-sub);padding:3px 10px;border-radius:999px;font-size:11px;cursor:pointer">印章</button>'
             f'</div>'
-            f'<button id="wr-gallery-close" style="border:none;background:var(--wr-bg);color:var(--wr-main);width:30px;height:30px;'
-            f'border-radius:50%;font-size:16px;cursor:pointer;line-height:1;flex-shrink:0">×</button></div></div>'
+            f'<div id="wr-receipt-tools" style="display:none;align-items:center;gap:8px;flex-wrap:wrap;flex-basis:100%;padding-top:4px">'
+            f'<label style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--wr-sub)">标题<input id="wr-receipt-title" type="text" maxlength="40" value="读书记录单" aria-label="小票标题" style="width:160px;max-width:100%;box-sizing:border-box;border:1px solid var(--wr-line);border-radius:5px;padding:4px 7px;font-size:11px;color:var(--wr-main);background:var(--wr-bg)"/></label>'
+            f'<button id="wr-receipt-export" style="background:var(--wr-bg);color:var(--wr-main);border:1px solid var(--wr-line);border-radius:5px;padding:4px 9px;font-size:11px;cursor:pointer">导出图片</button>'
+            f'<span id="wr-receipt-status" role="status" style="font-size:10px;color:var(--wr-sub);overflow-wrap:anywhere"></span>'
+            f'</div>'
+            f'</div>'
+            f'<div id="wr-gallery-viewport" style="flex:none;min-height:0;overflow:hidden;position:relative;padding:8px;box-sizing:border-box;scrollbar-width:thin">'
             f'<div id="wr-gallery-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));'
             f'gap:24px 20px;margin-top:18px"></div>'
+            f'<div id="wr-gallery-years" style="display:none">{year_json}</div>'
             f'<div id="wr-gallery-data" style="display:none" data-days="{N_DAYS}" data-title="{esc(TITLE)}" data-year="{YEAR}" data-month="{MONTH}">{data_json}</div>'
-            f'</div></div>'
+            f'</div></div></div>'
             # 单书详情弹层（画廊/封面条内点击书或封面弹出；右上角可跳书页笔记）
             f'<div id="wr-book-detail-mask" style="position:fixed;inset:0;background:rgba(20,26,40,.6);'
             f'backdrop-filter:blur(10px);z-index:10000;display:flex;align-items:center;justify-content:center;'
             f'opacity:0;visibility:hidden;transition:opacity .3s ease,visibility .3s ease">'
-            f'<div id="wr-book-detail-panel" style="background:#FFFFFF;border:0.5px solid #E6D4C0;border-radius:20px;'
+            f'<div id="wr-book-detail-panel" style="background:var(--wr-bg);color:var(--wr-main);border:0.5px solid var(--wr-line);border-radius:20px;'
             f'max-width:430px;width:90vw;max-height:88vh;overflow:auto;box-shadow:0 24px 60px rgba(0,0,0,.4);'
             f'transform:translateY(30px) scale(.96);transition:transform .35s cubic-bezier(.2,.9,.3,1.15);'
             f'padding:22px 24px;position:relative"></div></div>')
 
 def cover_gallery_html():
-    # 本月在读书籍封面横向画廊（无背景卡样式，带自动滚动动效；按时长降序，缺失封面跳过）
-    cards = []
-    for b in sorted(books, key=lambda x: x.get("sec", 0), reverse=True):
-        disp = b.get("title") or b.get("short") or "未知"
-        cov = b.get("cover", "")
-        if not cov:
-            continue
-        tstr = fmt_sec(b.get("sec", 0))
-        cards.append(
-            f'<div style="flex:0 0 auto;width:96px;text-align:center">'
-            f'<a href="{ob_uri(disp)}" data-note="{esc(disp)}" data-t="{esc(disp)}" style="text-decoration:none;display:block;cursor:pointer" title="打开笔记：{esc(disp)}">'
-            f'<img src="{esc(cov)}" alt="{esc(disp)}" loading="lazy" '
-            f'style="width:96px;height:128px;object-fit:cover;border-radius:10px;'
-            f'border:0.5px solid #E6D4C0;display:block;box-shadow:0 2px 8px rgba(0,0,0,.08);pointer-events:none"/>'
-            f'</a>'
-            f'<div style="font-size:11px;color:#414969;margin-top:6px;overflow:hidden;'
-            f'text-overflow:ellipsis;white-space:nowrap;max-width:96px">{esc(disp)}</div>'
-            f'<div style="font-size:10px;color:#7E748C;margin-top:2px">{tstr}</div>'
-            f'</div>')
-    if not cards:
+    # Inline gallery replaces the cover strip; detail modal remains available on click.
+    if not any(b.get("cover") for b in books):
         return ""
-    return (f'<div style="margin:0 0 16px">'
-            f'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">'
-            f'<div style="font-size:14px;font-weight:500;color:#414969">本月在读 · 封面</div>'
-            f'<button id="wr-gallery-btn" style="border:none;background:#414969;color:#FFFFFF;'
-            f'padding:5px 14px;border-radius:999px;font-size:12px;cursor:pointer;'
-            f'box-shadow:0 2px 6px rgba(0,0,0,.12);transition:transform .2s ease,box-shadow .2s ease">画廊模式</button>'
-            f'</div>'
-            f'<div id="wr-cover-gallery" style="display:flex;gap:12px;overflow-x:auto;'
-            f'padding:4px 2px 8px;align-items:flex-start;cursor:grab">'
-            f'{"".join(cards)}</div>'
-            f'{gallery_modal_html()}</div>')
+    return gallery_modal_html()
 
 def week_bounds():
     now = datetime.datetime.now(TZ).date()
