@@ -976,6 +976,20 @@ _GALLERY_JS = """
       return await read(url,0);
     }
   }
+  async function drawNativeGallery(wrapper,width,height,scale){
+    // Let Chromium paint the captured DOM, including object-fit, writing-mode,
+    // font shaping and shadows; do not approximate it with html2canvas.
+    const markup=new XMLSerializer().serializeToString(wrapper);
+    const svg='<svg xmlns="http://www.w3.org/2000/svg" width="'+width+'" height="'+height+'"><foreignObject width="100%" height="100%">'+markup+'</foreignObject></svg>';
+    const snapshot=new Image();
+    await new Promise(function(resolve,reject){
+      snapshot.onload=resolve;snapshot.onerror=function(){reject(new Error('无法渲染画廊快照'));};
+      snapshot.src='data:image/svg+xml;charset=utf-8,'+encodeURIComponent(svg);
+    });
+    const canvas=document.createElement('canvas');canvas.width=Math.ceil(width*scale);canvas.height=Math.ceil(height*scale);
+    const context=canvas.getContext('2d');context.scale(scale,scale);context.drawImage(snapshot,0,0,width,height);
+    return canvas;
+  }
   async function exportGalleryView(){
     if(viewExportBtn.disabled || mode==='scroll' || mode==='achv')return;
     const exportMode=mode, label={flat:'平铺',shelf:'书架',spine:'书脊'}[mode];
@@ -993,10 +1007,7 @@ _GALLERY_JS = """
       variables.forEach(function(name){target.style.setProperty(name,maskStyle.getPropertyValue(name));});
       target.style.animation='none';target.style.transition='none';
       if(el.hasAttribute('data-wr-enter')){target.style.opacity='1';target.style.transform='none';}
-      if(computed.writingMode==='vertical-rl'){
-        const text=target.textContent;target.textContent='';target.style.writingMode='horizontal-tb';target.style.flexDirection='column';
-        Array.from(text).forEach(function(char){const part=document.createElement('span');part.textContent=char;part.style.cssText='display:block;flex:none;line-height:1';target.appendChild(part);});
-      }
+
     });
     clone.style.width=width+'px';clone.style.height='auto';clone.style.transform='none';clone.style.margin='0';clone.style.overflow='visible';
     if(exportMode==='flat')Array.from(clone.children).forEach(function(cell){if(cell.firstElementChild)cell.firstElementChild.style.transform='none';});
@@ -1019,7 +1030,7 @@ _GALLERY_JS = """
       await Promise.all(Array.from(wrapper.querySelectorAll('img')).map(function(img){return img.decode();}));
       const height=Math.ceil(wrapper.scrollHeight),exportWidth=width+64;
       const scale=Math.min(2,16000/Math.max(exportWidth,height),Math.sqrt(48000000/(exportWidth*height)));
-      const canvas=await getReceiptRasterizer()(wrapper,{backgroundColor:background,scale:scale,width:exportWidth,height:height,windowWidth:exportWidth,windowHeight:height,scrollX:0,scrollY:0,logging:false});
+      const canvas=await drawNativeGallery(wrapper,exportWidth,height,scale);
       const blob=await new Promise(function(resolve,reject){canvas.toBlob(function(value){value?resolve(value):reject(new Error('无法生成 PNG 图片'));},'image/png');});
       await destination.write(blob);viewExportStatus.textContent='已保存：'+destination.label;
     }catch(e){viewExportStatus.textContent=e.name==='AbortError'?'已取消保存':'导出失败：'+(e.message||String(e));}
